@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usersAPI } from "@/services/api";
 
 const menu = [
   { label: "Dashboard", href: "/dashboard", icon: "📊" },
@@ -14,6 +16,45 @@ const menu = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [userName, setUserName] = useState("Usuário");
+  const [userRole, setUserRole] = useState("Função");
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const id = localStorage.getItem("userId");
+      const email = localStorage.getItem("userEmail");
+      const storedRole = localStorage.getItem("userRole");
+      const storedName = localStorage.getItem("userFullName");
+
+      // Fallback to stored values first
+      if (storedName) setUserName(storedName);
+      else if (email) setUserName(email);
+      if (storedRole) setUserRole(storedRole);
+
+      // Try fetching latest user info by id
+      if (id) {
+        try {
+          const response = await usersAPI.getById(Number(id));
+          const data = response.data || {};
+          if (data.full_name) {
+            setUserName(data.full_name);
+            localStorage.setItem("userFullName", data.full_name);
+          }
+          if (data.role) {
+            setUserRole(data.role);
+            localStorage.setItem("userRole", data.role);
+          }
+          if (data.email && !storedName) {
+            localStorage.setItem("userEmail", data.email);
+          }
+        } catch (error) {
+          // keep stored fallback
+        }
+      }
+    };
+
+    loadUser();
+  }, []);
 
   return (
     <aside className="w-64 h-screen fixed inset-y-0 left-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-slate-100 flex flex-col shadow-2xl animate-slide-in z-20">
@@ -49,11 +90,11 @@ export function Sidebar() {
         <div className="bg-slate-800/50 backdrop-blur-sm p-4 rounded-xl mb-3">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-              J
+              {userName?.trim()?.charAt(0)?.toUpperCase() || "U"}
             </div>
             <div>
-              <p className="text-sm font-semibold">João Santos</p>
-              <p className="text-xs text-slate-400">Admin</p>
+              <p className="text-sm font-semibold">{userName}</p>
+              <p className="text-xs text-slate-400">{userRole || ""}</p>
             </div>
           </div>
         </div>

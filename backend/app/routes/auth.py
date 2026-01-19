@@ -18,6 +18,7 @@ class LoginResponse(BaseModel):
     id: int
     email: str
     full_name: str
+    role: str
     is_active: bool
     token: str = "fake-jwt-token"  # Implementar JWT depois
 
@@ -50,6 +51,7 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         id=user.id,
         email=user.email,
         full_name=user.full_name,
+        role=user.role or "",
         is_active=user.is_active,
         token="fake-jwt-token"
     )
@@ -96,5 +98,6 @@ async def get_current_user(db: Session = Depends(get_db)):
     return {
         "id": users.id,
         "email": users.email,
-        "full_name": users.full_name
+        "full_name": users.full_name,
+        "role": users.role or ""
     }

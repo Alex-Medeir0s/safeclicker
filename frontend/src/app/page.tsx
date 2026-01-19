@@ -25,11 +25,11 @@ export default function LoginPage() {
         localStorage.setItem("token", response.data.token);
       }
       
-      // Armazenar informações do usuário
-      if (response.data.id) {
-        localStorage.setItem("userId", response.data.id.toString());
-        localStorage.setItem("userEmail", response.data.email);
-      }
+      // Armazenar informações do usuário (sempre sobrescrever para evitar dados de sessão anterior)
+      localStorage.setItem("userId", response.data.id?.toString() || "");
+      localStorage.setItem("userEmail", response.data.email || "");
+      localStorage.setItem("userRole", response.data.role || "");
+      localStorage.setItem("userFullName", response.data.full_name || response.data.email || "");
       
       router.push("/dashboard");
     } catch (err: any) {
