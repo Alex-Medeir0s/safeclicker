@@ -8,7 +8,8 @@ from app.models.department import Department
 from app.models.campaign_send import CampaignSend
 from app.models.click_event import ClickEvent
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+from datetime import datetime
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 
@@ -18,6 +19,16 @@ class DepartmentStat(BaseModel):
     sends: int
     clicks: int
     rate: float
+
+
+class RecentCampaign(BaseModel):
+    id: int
+    name: str
+    status: str
+    users: int
+    clicks: int
+    reports: int
+    start_date: Optional[datetime]
 
 
 class MetricsSummary(BaseModel):
@@ -31,6 +42,7 @@ class MetricsSummary(BaseModel):
 class DashboardMetrics(BaseModel):
     summary: MetricsSummary
     department_stats: List[DepartmentStat]
+    recent_campaigns: List[RecentCampaign]
 
 
 @router.get("/dashboard", response_model=DashboardMetrics)
@@ -78,6 +90,37 @@ async def get_dashboard_metrics(db: Session = Depends(get_db)):
                 rate=rate
             )
         )
+
+    # Campanhas recentes (ordenadas por início ou criação)
+    recent_campaigns_raw = (
+        db.query(
+            Campaign.id,
+            Campaign.name,
+            Campaign.status,
+            func.coalesce(Campaign.start_date, Campaign.created_at).label("start_date"),
+            func.count(CampaignSend.id).label("users"),
+            func.count(ClickEvent.id).label("clicks"),
+        )
+        .outerjoin(CampaignSend, Campaign.id == CampaignSend.campaign_id)
+        .outerjoin(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id)
+        .group_by(Campaign.id)
+        .order_by(func.coalesce(Campaign.start_date, Campaign.created_at).desc())
+        .limit(5)
+        .all()
+    )
+
+    recent_campaigns = [
+        RecentCampaign(
+            id=row.id,
+            name=row.name,
+            status=row.status or "",
+            users=row.users or 0,
+            clicks=row.clicks or 0,
+            reports=0,  # Placeholder até termos eventos de reporte
+            start_date=row.start_date,
+        )
+        for row in recent_campaigns_raw
+    ]
     
     return DashboardMetrics(
         summary=MetricsSummary(
@@ -87,5 +130,6 @@ async def get_dashboard_metrics(db: Session = Depends(get_db)):
             click_rate=click_rate,
             report_rate=report_rate
         ),
-        department_stats=department_stats
+        department_stats=department_stats,
+        recent_campaigns=recent_campaigns
     )

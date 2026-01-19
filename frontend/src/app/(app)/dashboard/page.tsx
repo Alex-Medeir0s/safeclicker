@@ -19,6 +19,15 @@ interface DashboardMetrics {
     clicks: number;
     rate: number;
   }>;
+  recent_campaigns?: Array<{
+    id: number;
+    name: string;
+    status: string;
+    users: number;
+    clicks: number;
+    reports: number;
+    start_date: string | null;
+  }>;
 }
 
 export default function Dashboard() {
@@ -51,6 +60,7 @@ export default function Dashboard() {
           report_rate: 0,
         },
         department_stats: [],
+        recent_campaigns: [],
       });
     } finally {
       setLoading(false);
@@ -71,6 +81,14 @@ export default function Dashboard() {
   if (!metrics) {
     return <div className="text-center py-12 text-red-600 font-medium">Erro ao carregar métricas</div>;
   }
+
+  const recentCampaigns = metrics.recent_campaigns ?? [];
+  const statusLabels: Record<string, string> = {
+    draft: "Rascunho",
+    active: "Ativa",
+    paused: "Pausada",
+    completed: "Concluída",
+  };
 
   return (
     <>
@@ -168,6 +186,119 @@ export default function Dashboard() {
               <span className="font-bold text-emerald-700 text-xl">{(100 - metrics.summary.click_rate).toFixed(1)}%</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Comparação por Departamento */}
+      <div className="mt-8 bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
+              📊
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">Comparação por Departamento</h2>
+              <p className="text-sm text-slate-500">Taxa de Cliques e Taxa de Reporte por departamento</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {metrics.department_stats.length === 0 && (
+            <p className="text-center text-slate-500 py-6">Nenhum dado disponível</p>
+          )}
+
+          {metrics.department_stats.map((dept, idx) => {
+            const clickRate = Math.min(100, Math.max(0, dept.rate ?? 0));
+            const reportRate = Math.min(100, Math.max(0, (dept as any).report_rate ?? 0));
+
+            return (
+              <div key={`${dept.department}-${idx}`} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-slate-800">{dept.department}</p>
+                  <div className="flex gap-3 text-xs text-slate-500">
+                    <span>Cliques: {clickRate.toFixed(1)}%</span>
+                    <span>Reporte: {reportRate.toFixed(1)}%</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-slate-600 w-20">Cliques</span>
+                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full"
+                        style={{ width: `${clickRate}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700 w-12 text-right">{clickRate.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-slate-600 w-20">Reporte</span>
+                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full"
+                        style={{ width: `${reportRate}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700 w-12 text-right">{reportRate.toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Campanhas Recentes */}
+      <div className="mt-8 bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
+              🕒
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">Campanhas Recentes</h2>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-left text-slate-700">
+            <thead className="text-xs uppercase text-slate-500 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3">Campanha</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Usuários</th>
+                <th className="px-4 py-3">Cliques</th>
+                <th className="px-4 py-3">Reportes</th>
+                <th className="px-4 py-3">Início</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {recentCampaigns.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center text-slate-500">Nenhuma campanha recente</td>
+                </tr>
+              )}
+
+              {recentCampaigns.map((campaign) => (
+                <tr key={campaign.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 font-semibold text-slate-900">{campaign.name}</td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {statusLabels[campaign.status?.toLowerCase()] ?? campaign.status ?? "-"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-semibold">{campaign.users}</td>
+                  <td className="px-4 py-3 font-semibold text-red-600">{campaign.clicks}</td>
+                  <td className="px-4 py-3 font-semibold text-emerald-600">{campaign.reports}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </>

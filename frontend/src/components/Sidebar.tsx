@@ -16,7 +16,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-slate-100 flex flex-col shadow-2xl animate-slide-in">
+    <aside className="w-64 h-screen fixed inset-y-0 left-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-slate-100 flex flex-col shadow-2xl animate-slide-in z-20">
       <Link href="/dashboard" className="p-6 flex items-center justify-center hover:scale-105 transition-transform duration-300">
         <Image
           src="/safeclicker-logo-branca.png"
