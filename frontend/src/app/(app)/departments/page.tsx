@@ -87,34 +87,55 @@ export default function Departments() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Carregando departamentos...</div>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Carregando departamentos...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Departamentos</h1>
+      <div className="flex justify-between items-center mb-8 animate-fade-in">
+        <div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            Departamentos
+          </h1>
+          <p className="text-slate-600">Gerencie os departamentos da empresa</p>
+        </div>
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg"
+          onClick={() => {
+            setEditingDept(null);
+            setFormData({ name: "", description: "" });
+            setShowForm(!showForm);
+          }}
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
         >
-          + Novo Departamento
+          <span className="text-xl">+</span> Novo Departamento
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow mb-6">
-          <h2 className="text-xl font-bold mb-4">
-            {editingDept ? "Editar Departamento" : "Novo Departamento"}
-          </h2>
+        <div className="bg-white p-8 rounded-2xl shadow-xl mb-6 border border-slate-200 animate-fade-in">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
+              {editingDept ? "✏️" : "🏢"}
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">
+              {editingDept ? `✏️ Editando: ${editingDept.name}` : "🏢 Novo Departamento"}
+            </h2>
+          </div>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
               {error}
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Nome do Departamento</label>
+              <label className="block text-sm font-medium mb-2">🏢 Nome do Departamento</label>
               <input
                 type="text"
                 value={formData.name}
@@ -126,7 +147,7 @@ export default function Departments() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Descrição</label>
+              <label className="block text-sm font-medium mb-2">📄 Descrição</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -136,53 +157,69 @@ export default function Departments() {
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3 pt-4 border-t border-slate-200">
               <button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+                className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
               >
-                {editingDept ? "Atualizar" : "Criar"} Departamento
+                {editingDept ? "✓ Atualizar" : "🚀 Criar"} Departamento
               </button>
               <button
                 type="button"
                 onClick={handleCancel}
-                className="bg-slate-400 hover:bg-slate-500 text-white px-4 py-2 rounded-lg"
+                className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2.5 rounded-xl font-semibold transition-all duration-300"
               >
-                Cancelar
+                ✕ Cancelar
               </button>
             </div>
           </form>
         </div>
       )}
 
-      <div className="grid gap-4">
+      <div className="grid gap-6">
         {departments.length === 0 ? (
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 text-center text-slate-600">
-            Nenhum departamento criado ainda.
+          <div className="bg-white p-12 rounded-2xl text-center shadow-lg border border-slate-200">
+            <div className="text-6xl mb-4">🏢</div>
+            <p className="text-slate-500 text-lg">Nenhum departamento criado ainda</p>
           </div>
         ) : (
-          departments.map((dept) => (
-            <div key={dept.id} className="bg-white p-6 rounded-lg shadow">
+          departments.map((dept, idx) => (
+            <div 
+              key={dept.id} 
+              style={{ animationDelay: `${idx * 0.1}s` }}
+              className={`bg-white p-6 rounded-2xl shadow-lg border-2 card-hover animate-fade-in transition-all ${
+                editingDept?.id === dept.id 
+                  ? "border-indigo-500 bg-gradient-to-r from-indigo-50 to-purple-50" 
+                  : "border-slate-200"
+              }`}
+            >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-slate-900">{dept.name}</h3>
-                  <p className="text-sm text-slate-600 mt-1">{dept.description}</p>
-                  <p className="text-xs text-slate-500 mt-2">
-                    Criado em: {new Date(dept.created_at).toLocaleDateString("pt-BR")}
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-2xl font-bold text-slate-900">{dept.name}</h3>
+                    {editingDept?.id === dept.id && (
+                      <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        ✏️ Editando
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-600 mb-3">{dept.description || "Sem descrição"}</p>
+                  <p className="text-xs text-slate-500">
+                    📅 Criado em: {new Date(dept.created_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(dept)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
                   >
-                    Editar
+                    ✏️ Editar
                   </button>
                   <button
                     onClick={() => handleDelete(dept.id)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
                   >
-                    Deletar
+                    🗑️ Deletar
                   </button>
                 </div>
               </div>

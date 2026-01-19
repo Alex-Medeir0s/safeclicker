@@ -41,7 +41,15 @@ async def update_user(user_id: int, user_update: UserUpdate, db: Session = Depen
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    for key, value in user_update.dict(exclude_unset=True).items():
+    update_data = user_update.dict(exclude_unset=True)
+    
+    # Se a senha foi fornecida, atualizar hashed_password
+    if "password" in update_data and update_data["password"]:
+        user.hashed_password = update_data.pop("password")
+    else:
+        update_data.pop("password", None)
+    
+    for key, value in update_data.items():
         setattr(user, key, value)
     
     db.commit()

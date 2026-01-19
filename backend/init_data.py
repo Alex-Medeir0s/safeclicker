@@ -49,12 +49,14 @@ def create_sample_data():
         {
             "email": "admin@safeclicker.com",
             "full_name": "Admin User",
+            "role": "admin",
             "department_id": dept_ids[0] if dept_ids else None,
             "password": "admin123",
         },
         {
             "email": "user1@safeclicker.com",
             "full_name": "User One",
+            "role": "colaborador",
             "department_id": dept_ids[1] if len(dept_ids) > 1 else None,
             "password": "user123",
         },

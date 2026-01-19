@@ -13,6 +13,8 @@ class Campaign(Base):
     template_id = Column(Integer, ForeignKey("templates.id"))
     created_by = Column(Integer, ForeignKey("users.id"))
     status = Column(String, default="draft")  # draft, active, paused, completed
+    complexity = Column(String, default="basico")  # basico, intermediario, avancado
+    trigger = Column(String, nullable=True)  # urgencia, autoridade, medo, recompensa
     target_audience = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

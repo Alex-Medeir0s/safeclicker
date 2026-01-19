@@ -58,61 +58,114 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Carregando dados...</div>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Carregando dados...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!metrics) {
-    return <div className="text-center py-12">Erro ao carregar métricas</div>;
+    return <div className="text-center py-12 text-red-600 font-medium">Erro ao carregar métricas</div>;
   }
 
   return (
     <>
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-
-      <div className="grid grid-cols-4 gap-6 mb-10">
-        <StatCard title="Taxa de Cliques" value={`${metrics.summary.click_rate.toFixed(1)}%`} color="text-red-500" />
-        <StatCard title="Taxa de Reporte" value={`${metrics.summary.report_rate.toFixed(1)}%`} color="text-emerald-500" />
-        <StatCard title="Usuários Impactados" value={metrics.summary.total_users.toString()} />
-        <StatCard title="Campanhas Ativas" value={metrics.summary.active_campaigns.toString()} />
+      <div className="mb-8 animate-fade-in">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          Dashboard
+        </h1>
+        <p className="text-slate-600">Visão geral de segurança e campanhas</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold mb-4">Estatísticas por Departamento</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <StatCard 
+          title="Taxa de Cliques" 
+          value={`${metrics.summary.click_rate.toFixed(1)}%`} 
+          color="text-red-600" 
+          icon="🎯"
+          trend={{ value: "2.3%", isPositive: false }}
+        />
+        <StatCard 
+          title="Taxa de Reporte" 
+          value={`${metrics.summary.report_rate.toFixed(1)}%`} 
+          color="text-emerald-600" 
+          icon="✅"
+          trend={{ value: "5.1%", isPositive: true }}
+        />
+        <StatCard 
+          title="Usuários Impactados" 
+          value={metrics.summary.total_users.toString()} 
+          color="text-blue-600"
+          icon="👥"
+        />
+        <StatCard 
+          title="Campanhas Ativas" 
+          value={metrics.summary.active_campaigns.toString()} 
+          color="text-purple-600"
+          icon="🚀"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
+              🏢
+            </div>
+            <h2 className="text-xl font-bold text-slate-800">Estatísticas por Departamento</h2>
+          </div>
           <div className="space-y-3">
             {metrics.department_stats.map((dept, idx) => (
-              <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded">
+              <div 
+                key={idx} 
+                style={{ animationDelay: `${idx * 0.1}s` }}
+                className="flex justify-between items-center p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl hover:shadow-md transition-all duration-300 animate-fade-in border border-slate-200"
+              >
                 <div>
-                  <p className="font-medium text-slate-900">{dept.department}</p>
-                  <p className="text-sm text-slate-500">{dept.sends} enviados</p>
+                  <p className="font-semibold text-slate-900">{dept.department}</p>
+                  <p className="text-sm text-slate-600">📧 {dept.sends} enviados</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-bold text-slate-900">{dept.clicks}</p>
-                  <p className="text-sm text-red-600">{dept.rate.toFixed(1)}% clicaram</p>
+                  <p className="text-2xl font-bold text-slate-900">{dept.clicks}</p>
+                  <p className="text-sm font-semibold text-red-600">👆 {dept.rate.toFixed(1)}% clicaram</p>
                 </div>
               </div>
             ))}
+            {metrics.department_stats.length === 0 && (
+              <p className="text-center py-8 text-slate-500">Nenhum dado disponível</p>
+            )}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold mb-4">Resumo Geral</h2>
+        <div className="bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
+              📊
+            </div>
+            <h2 className="text-xl font-bold text-slate-800">Resumo Geral</h2>
+          </div>
           <div className="space-y-3">
-            <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span className="text-slate-700">Total de Campanhas</span>
-              <span className="font-bold text-slate-900">{metrics.summary.total_campaigns}</span>
+            <div className="flex justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 hover:shadow-md transition-all">
+              <span className="text-slate-700 font-medium">📋 Total de Campanhas</span>
+              <span className="font-bold text-slate-900 text-lg">{metrics.summary.total_campaigns}</span>
             </div>
-            <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span className="text-slate-700">Campanhas Ativas</span>
-              <span className="font-bold text-slate-900">{metrics.summary.active_campaigns}</span>
+            <div className="flex justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200 hover:shadow-md transition-all">
+              <span className="text-slate-700 font-medium">🚀 Campanhas Ativas</span>
+              <span className="font-bold text-slate-900 text-lg">{metrics.summary.active_campaigns}</span>
             </div>
-            <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span className="text-slate-700">Total de Usuários</span>
-              <span className="font-bold text-slate-900">{metrics.summary.total_users}</span>
+            <div className="flex justify-between p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200 hover:shadow-md transition-all">
+              <span className="text-slate-700 font-medium">👤 Total de Usuários</span>
+              <span className="font-bold text-slate-900 text-lg">{metrics.summary.total_users}</span>
             </div>
-            <div className="flex justify-between p-3 bg-emerald-50 rounded border border-emerald-200">
-              <span className="text-emerald-700 font-medium">Taxa de Segurança</span>
-              <span className="font-bold text-emerald-700">{(100 - metrics.summary.click_rate).toFixed(1)}%</span>
+            <div className="flex justify-between p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border-2 border-emerald-300 hover:shadow-lg transition-all">
+              <span className="text-emerald-700 font-bold flex items-center gap-2">
+                🛡️ Taxa de Segurança
+              </span>
+              <span className="font-bold text-emerald-700 text-xl">{(100 - metrics.summary.click_rate).toFixed(1)}%</span>
             </div>
           </div>
         </div>

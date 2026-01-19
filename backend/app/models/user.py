@@ -11,6 +11,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     full_name = Column(String)
     hashed_password = Column(String)
+    role = Column(String, default="colaborador")  # colaborador, gestor, ti, admin
     is_active = Column(Boolean, default=True)
     department_id = Column(Integer, ForeignKey("departments.id"))
     created_at = Column(DateTime, default=datetime.utcnow)

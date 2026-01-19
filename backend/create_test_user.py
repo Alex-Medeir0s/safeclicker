@@ -29,6 +29,7 @@ def create_test_user():
             new_user = User(
                 email="admin@safeclicker.com",
                 full_name="Admin User",
+                role="admin",
                 hashed_password="admin123",
                 is_active=True
             )
