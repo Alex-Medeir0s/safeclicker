@@ -47,31 +47,18 @@ export default function LoginPage() {
         <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500 rounded-full blur-3xl opacity-20 animate-pulse-soft"></div>
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-500 rounded-full blur-3xl opacity-20 animate-pulse-soft"></div>
         
-        <div className="relative z-10 animate-fade-in">
+        <div className="relative z-10 animate-fade-in flex flex-col items-center">
           <Image
             src="/safeclicker-logo-branca.png"
             alt="SafeClicker Logo"
             width={300}
             height={300}
             priority
-            className="mb-8 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+            className="mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
           />
-          <h1 className="text-5xl font-bold text-center bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-            SafeClicker
-          </h1>
-          <p className="text-xl text-slate-200 font-light max-w-md text-center mt-4">
-            Plataforma de Treinamento em Segurança de Phishing
+          <p className="text-xl text-slate-200 font-light max-w-md text-center">
+            Plataforma Web de Simulação e Treinamento Contínuo contra Phishing
           </p>
-          <div className="flex gap-8 mt-12 justify-center">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-emerald-400">99%</div>
-              <div className="text-sm text-slate-300">Taxa de Sucesso</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-blue-400">10k+</div>
-              <div className="text-sm text-slate-300">Usuários Treinados</div>
-            </div>
-          </div>
         </div>
       </div>
 
