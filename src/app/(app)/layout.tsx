@@ -1,4 +1,6 @@
+"use client";
 import { Sidebar } from "@/components/Sidebar";
+import { useRouter } from "next/navigation";
 
 export default function AppLayout({
   children,
