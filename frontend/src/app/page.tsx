@@ -7,8 +7,8 @@ import { authAPI } from "@/services/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@safeclicker.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -65,17 +65,17 @@ export default function LoginPage() {
       {/* RIGHT */}
       <div className="flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="w-full max-w-md px-8 animate-fade-in">
-          <div className="bg-white p-10 rounded-3xl shadow-2xl border border-slate-200 card-hover">
+            <div className="bg-white p-10 rounded-3xl shadow-2xl border border-slate-200 card-hover">
             <div className="mb-8">
-              <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Bem-vindo 👋
-              </h2>
-              <p className="text-slate-500">
-                Entre com suas credenciais para acessar a plataforma
-              </p>
+                <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Bem-vindo
+                </h2>
+                <p className="text-slate-500">
+                  Entre com suas credenciais para acessar a plataforma
+                </p>
             </div>
 
-            <form className="space-y-5" onSubmit={handleLogin}>
+            <form className="space-y-5" onSubmit={handleLogin} autoComplete="off">
               {error && (
                 <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-xl animate-fade-in flex items-center gap-2">
                   <span>⚠️</span>
@@ -95,6 +95,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
+                  autoComplete="off"
                 />
               </div>
 
@@ -110,6 +111,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                   required
+                  autoComplete="off"
                 />
               </div>
 
