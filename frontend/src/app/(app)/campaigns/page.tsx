@@ -11,8 +11,12 @@ interface Campaign {
   complexity: string;
   trigger?: string;
   target_departments?: string;
+  target_audience?: string;
+  target_department_id?: number;
   created_at: string;
   template_id?: number;
+  subject?: string;
+  html_template?: string;
 }
 
 interface Department {
@@ -68,7 +72,14 @@ export default function Campaigns() {
     e.preventDefault();
     setError("");
     
+    // Usar o primeiro departamento selecionado como target_department_id
+    const targetDepartmentId = selectedDeptIds.length > 0 ? selectedDeptIds[0] : null;
     const targetDepartments = selectedDeptIds.join(",");
+    
+    if (!targetDepartmentId) {
+      setError("Selecione pelo menos um departamento alvo");
+      return;
+    }
     
     try {
       if (editingCampaign) {
@@ -79,12 +90,16 @@ export default function Campaigns() {
           template_id: formData.template_id,
           status: "draft",
           target_audience: targetDepartments,
+          target_department_id: targetDepartmentId,
+          subject: formData.name,
+          html_template: formData.html_content,
         });
         setEditingCampaign(null);
       } else {
-        // Criar novo template primeiro
-        const templateResponse = await api.post("/templates/", {
-          name: `Template - ${formData.name}`,
+        // Criar novo template primeiro com nome único (usando timestamp)
+        const timestamp = Date.now();
+        const templateResponse = await api.post("/templates", {
+          name: `Template - ${formData.name} - ${timestamp}`,
           subject: formData.name,
           body: formData.html_content,
           description: `Template para ${formData.name}`,
@@ -93,12 +108,15 @@ export default function Campaigns() {
         const templateId = templateResponse.data.id;
         
         // Criar nova campanha com o template
-        await api.post("/campaigns/", {
+        await api.post("/campaigns", {
           name: formData.name,
           description: formData.name,
           template_id: templateId,
           status: "draft",
           target_audience: targetDepartments,
+          target_department_id: targetDepartmentId,
+          subject: formData.name,
+          html_template: formData.html_content,
         });
       }
       
@@ -425,20 +443,30 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
   };
 
   const handleSend = async () => {
-    if (!confirm("Tem certeza que deseja enviar essa campanha?")) {
+    if (!confirm("Tem certeza que deseja enviar essa campanha para os usuários selecionados?")) {
       return;
     }
 
     setSending(true);
     try {
-      await api.put(`/campaigns/${campaign.id}`, {
-        status: "active"
-      });
+      const response = await api.post(`/campaigns/${campaign.id}/send`);
+      const { sent, recipients, errors } = response.data;
+      
+      let message = `✅ Campanha enviada com sucesso!\n\n`;
+      message += `📧 Emails enviados: ${sent}/${recipients}\n`;
+      
+      if (errors && errors.length > 0) {
+        message += `\n⚠️ Erros (${errors.length}): `;
+        message += errors.map((e: any) => `${e.email}: ${e.error}`).join("\n");
+      }
+      
+      alert(message);
       // Recarrega a página após enviar
       window.location.reload();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao enviar campanha:", error);
-      alert("Erro ao enviar campanha");
+      const errorMsg = error.response?.data?.detail || "Erro ao enviar campanha";
+      alert(`❌ Erro: ${typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg)}`);
     } finally {
       setSending(false);
     }

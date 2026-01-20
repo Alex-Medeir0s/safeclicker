@@ -16,17 +16,19 @@ class Settings(BaseSettings):
     # Banco de Dados
     database_url: str = "postgresql://postgres:password@localhost:5432/safeclicker"
     
-    # SendGrid - Email API
-    sendgrid_api_key: str = "SG_SUA_API_KEY_AQUI"
-    sendgrid_from_email: str = "campanhas@safeclicker.local"
-    sendgrid_template_id: str = "d-7c771bef5cac45ccb87edf64437cc73a"
+    # SMTP - Email
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = "your-email@example.com"
+    smtp_password: str = "your-app-password"
+    smtp_from: str = "SafeClicker <your-email@example.com>"
     
     # URLs da Aplicação
-    backend_base_url: str = "http://localhost:8000"
-    frontend_base_url: str = "http://localhost:3000"
+    app_base_url: str = "http://localhost:8000"
+    frontend_url: str = "http://localhost:3000"
     
     # Campanhas / Tracking
-    tracking_endpoint: str = "/track"
+    tracking_endpoint: str = "/campaigns/track"
     
     # Log
     log_level: str = "INFO"

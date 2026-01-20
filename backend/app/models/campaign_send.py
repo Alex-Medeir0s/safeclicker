@@ -9,6 +9,7 @@ class CampaignSend(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     campaign_id = Column(Integer, ForeignKey("campaigns.id"))
+    token = Column(String, unique=True, index=True)
     recipient_email = Column(String, index=True)
     sent_at = Column(DateTime, default=datetime.utcnow)
     opened = Column(Boolean, default=False)

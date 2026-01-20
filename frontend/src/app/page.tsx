@@ -54,6 +54,7 @@ export default function LoginPage() {
             width={300}
             height={300}
             priority
+            style={{ width: "auto", height: "auto" }}
             className="mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
           />
           <p className="text-xl text-slate-200 font-light max-w-md text-center">

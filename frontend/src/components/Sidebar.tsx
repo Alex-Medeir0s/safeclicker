@@ -65,6 +65,7 @@ export function Sidebar() {
           width={180}
           height={180}
           priority
+          style={{ width: "auto", height: "auto" }}
         />
       </Link>
 

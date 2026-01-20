@@ -12,6 +12,9 @@ pydantic-settings==2.1.0
 python-dotenv==1.0.0
 email-validator==2.1.0
 
+# Email
+fastapi-mail==1.4.1
+
 # Utilitários
 python-multipart==0.0.6
 

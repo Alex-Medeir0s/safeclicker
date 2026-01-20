@@ -1,9 +1,18 @@
+import os
+import secrets
+from datetime import datetime
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.models.campaign import Campaign
+from app.models.campaign_send import CampaignSend
+from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignRead, CampaignUpdate
-from typing import List
+from app.services.email_service import email_service
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
@@ -57,4 +66,82 @@ async def delete_campaign(campaign_id: int, db: Session = Depends(get_db)):
     db.delete(campaign)
     db.commit()
     return {"message": "Campaign deleted"}
+
+
+@router.post("/{campaign_id}/send")
+async def send_campaign(campaign_id: int, db: Session = Depends(get_db)):
+    campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada")
+
+    if not campaign.target_department_id:
+        raise HTTPException(status_code=400, detail="Campanha sem departamento alvo definido")
+
+    if not campaign.html_template:
+        raise HTTPException(status_code=400, detail="Campanha sem template HTML configurado")
+
+    users = (
+        db.query(User)
+        .filter(User.department_id == campaign.target_department_id, User.is_active == True)
+        .all()
+    )
+
+    if not users:
+        raise HTTPException(status_code=400, detail="Departamento selecionado sem usuários ativos")
+
+    base_url = os.getenv("APP_BASE_URL", "http://localhost:8000").rstrip("/")
+
+    sent = 0
+    errors = []
+
+    for user in users:
+        token = secrets.token_urlsafe(24)
+
+        send_row = CampaignSend(
+            campaign_id=campaign.id,
+            recipient_email=user.email,
+            token=token,
+            sent_at=datetime.utcnow(),
+            opened=False,
+            bounced=False,
+        )
+        db.add(send_row)
+        db.commit()
+        db.refresh(send_row)
+
+        tracking_url = f"{base_url}/campaigns/track/{token}"
+        html = (campaign.html_template or "").replace("{{tracking_url}}", tracking_url)
+
+        try:
+            await email_service.send_html(
+                subject=campaign.subject or "Campanha SafeClicker",
+                recipients=[user.email],
+                html=html,
+            )
+            sent += 1
+        except Exception as exc:  # pragma: no cover - external dependency
+            send_row.bounced = True
+            db.commit()
+            errors.append({"email": user.email, "error": str(exc)})
+
+    return {
+        "campaign_id": campaign.id,
+        "recipients": len(users),
+        "sent": sent,
+        "errors": errors,
+    }
+
+
+@router.get("/track/{token}", include_in_schema=False)
+def track_click(token: str, db: Session = Depends(get_db)):
+    row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Token inválido")
+
+    row.opened = True
+    row.opened_at = datetime.utcnow()
+    db.commit()
+
+    frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    return RedirectResponse(url=f"{frontend}/training?token={token}")
 

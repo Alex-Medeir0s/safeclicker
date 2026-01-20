@@ -2,15 +2,19 @@ import axios from "axios";
 
 export const api = axios.create({
   baseURL: "http://localhost:8000",
-  timeout: 10000, // 10 segundos
+  timeout: 30000, // 30 segundos
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Interceptor para logs de debug
+// Interceptor para remover trailing slash nas URLs
 api.interceptors.request.use(
   (config) => {
+    // Remove trailing slash da URL
+    if (config.url && config.url.endsWith("/") && config.url !== "/") {
+      config.url = config.url.slice(0, -1);
+    }
     console.log("🚀 Request:", config.method?.toUpperCase(), config.url);
     return config;
   },
@@ -28,9 +32,9 @@ api.interceptors.response.use(
   (error) => {
     console.error("❌ Response error:", error.message);
     if (error.code === "ECONNABORTED") {
-      console.error("⏱️ Request timeout - servidor não respondeu em 10 segundos");
+      console.error("⏱️ Request timeout - servidor não respondeu em 30 segundos. Verifique se o backend está rodando com: uvicorn app.main:app --reload");
     } else if (error.code === "ERR_NETWORK") {
-      console.error("🌐 Network error - verifique se o backend está rodando");
+      console.error("🌐 Network error - verifique se o backend está rodando em http://localhost:8000");
     }
     return Promise.reject(error);
   }
