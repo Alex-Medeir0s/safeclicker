@@ -94,6 +94,11 @@ async def send_campaign(campaign_id: int, db: Session = Depends(get_db)):
     sent = 0
     errors = []
 
+    # Marcar campanha como ativa para aparecer no dashboard
+    campaign.status = "active"
+    db.commit()
+    db.refresh(campaign)
+
     for user in users:
         token = secrets.token_urlsafe(24)
 
@@ -129,6 +134,7 @@ async def send_campaign(campaign_id: int, db: Session = Depends(get_db)):
         "recipients": len(users),
         "sent": sent,
         "errors": errors,
+        "status": campaign.status,
     }
 
 
