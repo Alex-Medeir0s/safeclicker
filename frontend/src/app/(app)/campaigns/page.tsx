@@ -366,6 +366,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sending, setSending] = useState(false);
 
   // Função para obter nomes dos departamentos selecionados
   const getDepartmentNames = () => {
@@ -423,6 +424,26 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
     }
   };
 
+  const handleSend = async () => {
+    if (!confirm("Tem certeza que deseja enviar essa campanha?")) {
+      return;
+    }
+
+    setSending(true);
+    try {
+      await api.put(`/campaigns/${campaign.id}`, {
+        status: "active"
+      });
+      // Recarrega a página após enviar
+      window.location.reload();
+    } catch (error) {
+      console.error("Erro ao enviar campanha:", error);
+      alert("Erro ao enviar campanha");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-200 relative overflow-hidden group">
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
@@ -475,6 +496,13 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
             className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
           >
             {loading ? "⏳ Carregando..." : "👁️ Visualizar"}
+          </button>
+          <button 
+            onClick={handleSend}
+            disabled={campaign.status !== "draft" || sending}
+            className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:hover:scale-100"
+          >
+            {sending ? "📤 Enviando..." : campaign.status === "draft" ? "📤 Enviar" : "✓ Enviada"}
           </button>
           <button 
             onClick={() => onEditCampaign(campaign)}
