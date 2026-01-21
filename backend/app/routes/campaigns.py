@@ -3,13 +3,14 @@ import secrets
 from datetime import datetime
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.campaign import Campaign
 from app.models.campaign_send import CampaignSend
+from app.models.click_event import ClickEvent
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignRead, CampaignUpdate
 from app.services.email_service import email_service
@@ -115,7 +116,16 @@ async def send_campaign(campaign_id: int, db: Session = Depends(get_db)):
         db.refresh(send_row)
 
         tracking_url = f"{base_url}/campaigns/track/{token}"
-        html = (campaign.html_template or "").replace("{{tracking_url}}", tracking_url)
+        html = campaign.html_template or ""
+
+        # Substitui variáveis dinâmicas no HTML
+        html = (
+            html.replace("{{tracking_url}}", tracking_url)
+            .replace("{tracking_url}", tracking_url)
+            .replace("{link_rastreamento}", tracking_url)
+            .replace("{nome}", user.full_name or "")
+            .replace("{email}", user.email or "")
+        )
 
         try:
             await email_service.send_html(
@@ -139,13 +149,24 @@ async def send_campaign(campaign_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/track/{token}", include_in_schema=False)
-def track_click(token: str, db: Session = Depends(get_db)):
+def track_click(token: str, request: Request, db: Session = Depends(get_db)):
     row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
     if not row:
         raise HTTPException(status_code=404, detail="Token inválido")
 
+    # Marca como aberto
     row.opened = True
     row.opened_at = datetime.utcnow()
+    db.commit()
+
+    # Registra evento de clique
+    click_event = ClickEvent(
+        campaign_send_id=row.id,
+        link_url=str(request.url),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", ""),
+    )
+    db.add(click_event)
     db.commit()
 
     frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
