@@ -1,0 +1,38 @@
+import React from 'react';
+import {
+  FiBarChart2,
+  FiTarget,
+  FiUsers,
+  FiGrid,
+  FiAlertTriangle,
+  FiMail,
+  FiLock,
+  FiArrowRight,
+  FiEdit2,
+  FiCheckCircle,
+  FiX,
+  FiCheck,
+  FiClock,
+  FiUploadCloud,
+  FiInfo,
+  FiShield,
+} from 'react-icons/fi';
+
+export const Icons = {
+  Dashboard: () => <FiBarChart2 className="w-5 h-5" />,
+  Target: () => <FiTarget className="w-5 h-5" />,
+  Users: () => <FiUsers className="w-5 h-5" />,
+  Building: () => <FiGrid className="w-5 h-5" />,
+  Alert: () => <FiAlertTriangle className="w-5 h-5" />,
+  Mail: () => <FiMail className="w-5 h-5" />,
+  Lock: () => <FiLock className="w-5 h-5" />,
+  Send: () => <FiArrowRight className="w-5 h-5" />,
+  Edit: () => <FiEdit2 className="w-5 h-5" />,
+  Success: () => <FiCheckCircle className="w-5 h-5" />,
+  Close: () => <FiX className="w-5 h-5" />,
+  Check: () => <FiCheck className="w-5 h-5" />,
+  Clock: () => <FiClock className="w-5 h-5" />,
+  Upload: () => <FiUploadCloud className="w-5 h-5" />,
+  Info: () => <FiInfo className="w-5 h-5" />,
+  Shield: () => <FiShield className="w-5 h-5" />,
+};

@@ -5,13 +5,14 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { usersAPI } from "@/services/api";
+import { FiBarChart2, FiTarget, FiUsers, FiGrid, FiTrendingUp } from "react-icons/fi";
 
 const menu = [
-  { label: "Dashboard", href: "/dashboard", icon: "📊" },
-  { label: "Campanhas", href: "/campaigns", icon: "🎯" },
-  { label: "Usuários", href: "/users", icon: "👥" },
-  { label: "Departamentos", href: "/departments", icon: "🏢" },
-  { label: "Relatórios", href: "/reports", icon: "📈" },
+  { label: "Dashboard", href: "/dashboard", icon: FiBarChart2 },
+  { label: "Campanhas", href: "/campaigns", icon: FiTarget },
+  { label: "Usuários", href: "/users", icon: FiUsers },
+  { label: "Departamentos", href: "/departments", icon: FiGrid },
+  { label: "Relatórios", href: "/reports", icon: FiTrendingUp },
 ];
 
 export function Sidebar() {
@@ -81,7 +82,7 @@ export function Sidebar() {
                 : "hover:bg-slate-800 hover:translate-x-1 text-slate-300"
             }`}
           >
-            <span className="text-xl">{item.icon}</span>
+            <item.icon className="w-5 h-5" />
             {item.label}
           </Link>
         ))}
@@ -101,9 +102,10 @@ export function Sidebar() {
         </div>
         <Link
           href="/"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-red-500/30"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gradient-to-r hover:from-red-500 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-red-500/30 gap-2"
         >
-          🚪 Sair
+          <FiGrid className="w-4 h-4" />
+          Sair
         </Link>
       </div>
     </aside>

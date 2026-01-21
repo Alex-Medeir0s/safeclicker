@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
+import { FiEdit2, FiPlus, FiX, FiCheck, FiEye, FiSend, FiTrash2, FiLoader, FiTarget, FiBriefcase } from "react-icons/fi";
 
 interface Campaign {
   id: number;
@@ -194,14 +195,14 @@ export default function Campaigns() {
           onClick={() => setShowForm(!showForm)}
           className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
         >
-          <span className="text-xl">+</span> Nova Campanha
+          <FiPlus className="w-5 h-5" /> Nova Campanha
         </button>
       </div>
 
       {showForm && (
         <div className="bg-white p-8 rounded-2xl shadow-xl mb-6 border border-slate-200 animate-fade-in">
           <h2 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-2">
-            {editingCampaign ? "✏️ Editar Campanha" : "🎯 Nova Campanha de Phishing"}
+            {editingCampaign ? <><FiEdit2 className="w-6 h-6" /> Editar Campanha</> : <><FiTarget className="w-6 h-6" /> Nova Campanha de Phishing</>}
           </h2>
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
@@ -302,9 +303,9 @@ export default function Campaigns() {
             <div className="flex gap-3 pt-6 border-t border-slate-200">
               <button
                 type="submit"
-                className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 justify-center"
               >
-                {editingCampaign ? "✓ Atualizar Campanha" : "🚀 Criar Campanha"}
+                {editingCampaign ? <><FiCheck className="w-5 h-5" /> Atualizar Campanha</> : <><FiSend className="w-5 h-5" /> Criar Campanha</>}
               </button>
               <button
                 type="button"
@@ -312,9 +313,9 @@ export default function Campaigns() {
                   setShowForm(false);
                   setEditingCampaign(null);
                 }}
-                className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-8 py-3 rounded-xl font-semibold transition-all duration-300"
+                className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-8 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 justify-center"
               >
-                ✕ Cancelar
+                <FiX className="w-5 h-5" /> Cancelar
               </button>
             </div>
           </form>
@@ -330,7 +331,7 @@ export default function Campaigns() {
         </div>
       ) : campaigns.length === 0 ? (
         <div className="bg-white p-12 rounded-2xl text-center shadow-lg border border-slate-200">
-          <div className="text-6xl mb-4">🎯</div>
+          <div className="flex justify-center mb-4"><FiTarget className="w-16 h-16 text-indigo-600" /></div>
           <p className="text-slate-500 text-lg">Nenhuma campanha criada ainda</p>
         </div>
       ) : (
@@ -353,12 +354,12 @@ export default function Campaigns() {
         <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center p-6 border-b bg-gradient-to-r from-indigo-50 to-purple-50">
-              <h2 className="text-2xl font-bold text-slate-800">👁️ Visualização do HTML</h2>
+              <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><FiEye className="w-6 h-6" /> Visualização do HTML</h2>
               <button
                 onClick={() => setSelectedHtml(null)}
-                className="text-slate-500 hover:text-red-600 text-3xl w-10 h-10 rounded-full hover:bg-red-100 transition-all duration-300"
+                className="text-slate-500 hover:text-red-600 w-10 h-10 rounded-full hover:bg-red-100 transition-all duration-300 flex items-center justify-center"
               >
-                ✕
+                <FiX className="w-5 h-5" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto bg-slate-100 p-4">
@@ -489,7 +490,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
 
         <div className="space-y-3 mb-5">
           <div className="flex justify-between items-center p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl">
-            <span className="text-sm text-slate-600 font-medium">📊 Status:</span>
+            <span className="text-sm text-slate-600 font-medium flex items-center gap-2"><FiCheck className="w-4 h-4" /> Status:</span>
             <span className={`text-sm font-bold px-3 py-1 rounded-lg shadow-sm ${
               campaign.status === "draft" 
                 ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white" 
@@ -499,7 +500,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
             </span>
           </div>
           <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
-            <span className="text-sm text-slate-600 font-medium">🎯 Complexidade:</span>
+            <span className="text-sm text-slate-600 font-medium flex items-center gap-2"><FiTarget className="w-4 h-4" /> Complexidade:</span>
             <span className={`text-sm font-bold px-3 py-1 rounded-lg shadow-sm ${
               campaign.complexity === "basico" ? "bg-blue-100 text-blue-700" :
               campaign.complexity === "intermediario" ? "bg-yellow-100 text-yellow-700" :
@@ -512,7 +513,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
           </div>
           {campaign.target_audience && (
             <div className="flex flex-col p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-              <span className="text-sm text-slate-600 font-medium mb-1">🏢 Departamentos Alvo:</span>
+              <span className="text-sm text-slate-600 font-medium mb-1 flex items-center gap-2"><FiBriefcase className="w-4 h-4" /> Departamentos Alvo:</span>
               <span className="text-sm font-bold text-green-700 line-clamp-2" title={getDepartmentNames()}>
                 {getDepartmentNames()}
               </span>
@@ -524,29 +525,29 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
           <button 
             onClick={handleViewHtml}
             disabled={loading}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
           >
-            {loading ? "⏳ Carregando..." : "👁️ Visualizar"}
+            {loading ? <><FiLoader className="w-4 h-4 animate-spin" /> Carregando...</> : <><FiEye className="w-4 h-4" /> Visualizar</>}
           </button>
           <button 
             onClick={handleSend}
             disabled={campaign.status !== "draft" || sending}
-            className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:hover:scale-100"
+            className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:hover:scale-100 flex items-center justify-center gap-2"
           >
-            {sending ? "📤 Enviando..." : campaign.status === "draft" ? "📤 Enviar" : "✓ Enviada"}
+            {sending ? <><FiLoader className="w-4 h-4 animate-spin" /> Enviando...</> : campaign.status === "draft" ? <><FiSend className="w-4 h-4" /> Enviar</> : <><FiCheck className="w-4 h-4" /> Enviada</>}
           </button>
           <button 
             onClick={() => onEditCampaign(campaign)}
-            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
           >
-            ✏️ Editar
+            <FiEdit2 className="w-4 h-4" /> Editar
           </button>
           <button 
             onClick={handleDelete}
             disabled={deleting}
-            className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+            className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
           >
-            {deleting ? "🗑️ Deletando..." : "🗑️ Excluir"}
+            {deleting ? <><FiLoader className="w-4 h-4 animate-spin" /> Deletando...</> : <><FiTrash2 className="w-4 h-4" /> Excluir</>}
           </button>
         </div>
       </div>

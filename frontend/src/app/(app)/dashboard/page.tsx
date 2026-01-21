@@ -4,6 +4,7 @@ import { StatCard } from "@/components/StatCard";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
+import { FiTarget, FiCheckCircle, FiUsers, FiZap, FiBriefcase, FiBarChart, FiClock, FiX } from "react-icons/fi";
 
 interface DashboardMetrics {
   summary: {
@@ -159,8 +160,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
           <div className="flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
-              🏢
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <FiBriefcase className="w-5 h-5" />
             </div>
             <h2 className="text-xl font-bold text-slate-800">Estatísticas por Departamento</h2>
           </div>
@@ -189,8 +190,8 @@ export default function Dashboard() {
 
         <div className="bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
           <div className="flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
-              📊
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <FiBarChart className="w-5 h-5" />
             </div>
             <h2 className="text-xl font-bold text-slate-800">Resumo Geral</h2>
           </div>
@@ -221,8 +222,8 @@ export default function Dashboard() {
       <div className="mt-8 bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
-              🕒
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <FiClock className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-800">Campanhas Recentes</h2>
@@ -287,9 +288,9 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => setSelectedCampaign(null)}
-                className="text-white hover:text-indigo-100 text-2xl font-bold"
+                className="text-white hover:text-indigo-100 text-xl font-bold"
               >
-                ✕
+                <FiX className="w-5 h-5" />
               </button>
             </div>
 
