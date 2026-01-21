@@ -74,7 +74,7 @@ async def get_dashboard_metrics(db: Session = Depends(get_db)):
     ).outerjoin(
         User, Department.id == User.department_id
     ).outerjoin(
-        CampaignSend, User.id == CampaignSend.recipient_email
+        CampaignSend, User.email == CampaignSend.recipient_email
     ).outerjoin(
         ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
     ).group_by(Department.name).all()

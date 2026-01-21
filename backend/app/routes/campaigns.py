@@ -170,5 +170,5 @@ def track_click(token: str, request: Request, db: Session = Depends(get_db)):
     db.commit()
 
     frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
-    return RedirectResponse(url=f"{frontend}/training?token={token}")
+    return RedirectResponse(url=f"{frontend}/phishing-training?token={token}")
 
