@@ -189,66 +189,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Comparação por Departamento */}
-      <div className="mt-8 bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">
-              📊
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-800">Comparação por Departamento</h2>
-              <p className="text-sm text-slate-500">Taxa de Cliques e Taxa de Reporte por departamento</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {metrics.department_stats.length === 0 && (
-            <p className="text-center text-slate-500 py-6">Nenhum dado disponível</p>
-          )}
-
-          {metrics.department_stats.map((dept, idx) => {
-            const clickRate = Math.min(100, Math.max(0, dept.rate ?? 0));
-            const reportRate = Math.min(100, Math.max(0, (dept as any).report_rate ?? 0));
-
-            return (
-              <div key={`${dept.department}-${idx}`} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-slate-800">{dept.department}</p>
-                  <div className="flex gap-3 text-xs text-slate-500">
-                    <span>Cliques: {clickRate.toFixed(1)}%</span>
-                    <span>Reporte: {reportRate.toFixed(1)}%</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-slate-600 w-20">Cliques</span>
-                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full"
-                        style={{ width: `${clickRate}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-700 w-12 text-right">{clickRate.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-slate-600 w-20">Reporte</span>
-                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full"
-                        style={{ width: `${reportRate}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-700 w-12 text-right">{reportRate.toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Campanhas Recentes */}
       <div className="mt-8 bg-white p-6 rounded-2xl shadow-lg card-hover border border-slate-100 animate-fade-in">
         <div className="flex items-center justify-between mb-4">
