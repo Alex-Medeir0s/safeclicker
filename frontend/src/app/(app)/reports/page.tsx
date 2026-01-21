@@ -57,12 +57,12 @@ export default function Reports() {
               <span className="font-bold">{data.summary.active_campaigns}</span>
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span>Total Enviados</span>
-              <span className="font-bold">{data.summary.total_sends}</span>
+              <span>Total de Usuários</span>
+              <span className="font-bold">{data.summary.total_users}</span>
             </div>
             <div className="flex justify-between p-3 bg-red-50 rounded border border-red-200">
-              <span className="text-red-700">Total de Cliques</span>
-              <span className="font-bold text-red-700">{data.summary.total_clicks}</span>
+              <span className="text-red-700">Taxa de Cliques</span>
+              <span className="font-bold text-red-700">{data.summary.click_rate.toFixed(1)}%</span>
             </div>
           </div>
         </div>
