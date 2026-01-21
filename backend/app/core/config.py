@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     smtp_user: str = "your-email@example.com"
     smtp_password: str = "your-app-password"
     smtp_from: str = "SafeClicker <your-email@example.com>"
+    smtp_from_name: str | None = None
     
     # URLs da Aplicação
     app_base_url: str = "http://localhost:8000"
