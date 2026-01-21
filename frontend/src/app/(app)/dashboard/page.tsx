@@ -30,10 +30,27 @@ interface DashboardMetrics {
   }>;
 }
 
+interface ClickDetail {
+  full_name: string;
+  email: string;
+  clicked_at: string | null;
+  ip_address: string | null;
+}
+
+interface CampaignClickDetails {
+  campaign_id: number;
+  campaign_name: string;
+  total_sends: number;
+  total_clicks: number;
+  clicks: ClickDetail[];
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedCampaign, setSelectedCampaign] = useState<CampaignClickDetails | null>(null);
+  const [loadingClicks, setLoadingClicks] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -50,7 +67,6 @@ export default function Dashboard() {
       setMetrics(response.data);
     } catch (error) {
       console.error("Erro ao buscar métricas:", error);
-      // Usar dados de exemplo em caso de erro
       setMetrics({
         summary: {
           total_campaigns: 0,
@@ -64,6 +80,18 @@ export default function Dashboard() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCampaignClicks = async (campaignId: number) => {
+    setLoadingClicks(true);
+    try {
+      const response = await api.get(`/metrics/campaigns/${campaignId}/clicks`);
+      setSelectedCampaign(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar cliques:", error);
+    } finally {
+      setLoadingClicks(false);
     }
   };
 
@@ -222,7 +250,11 @@ export default function Dashboard() {
               )}
 
               {recentCampaigns.map((campaign) => (
-                <tr key={campaign.id} className="hover:bg-slate-50 transition-colors">
+                <tr 
+                  key={campaign.id} 
+                  className="hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={() => fetchCampaignClicks(campaign.id)}
+                >
                   <td className="px-4 py-3 font-semibold text-slate-900">{campaign.name}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -241,6 +273,64 @@ export default function Dashboard() {
           </table>
         </div>
       </div>
+
+      {/* Modal de Cliques */}
+      {selectedCampaign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-96 overflow-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">{selectedCampaign.campaign_name}</h2>
+                <p className="text-indigo-100 text-sm">
+                  {selectedCampaign.total_clicks} de {selectedCampaign.total_sends} usuários clicaram
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedCampaign(null)}
+                className="text-white hover:text-indigo-100 text-2xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {loadingClicks ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-slate-600">Carregando dados...</p>
+                </div>
+              </div>
+            ) : selectedCampaign.clicks.length === 0 ? (
+              <div className="p-6 text-center text-slate-500">
+                Nenhum clique registrado nesta campanha
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-200">
+                {selectedCampaign.clicks.map((click, idx) => (
+                  <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-slate-900">{click.full_name}</p>
+                        <p className="text-sm text-slate-600">{click.email}</p>
+                        {click.ip_address && (
+                          <p className="text-xs text-slate-500">IP: {click.ip_address}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">
+                          {click.clicked_at
+                            ? new Date(click.clicked_at).toLocaleString("pt-BR")
+                            : "Data desconhecida"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

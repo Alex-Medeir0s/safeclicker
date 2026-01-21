@@ -21,6 +21,21 @@ class DepartmentStat(BaseModel):
     rate: float
 
 
+class ClickDetail(BaseModel):
+    full_name: str
+    email: str
+    clicked_at: Optional[datetime]
+    ip_address: Optional[str]
+
+
+class CampaignClickDetails(BaseModel):
+    campaign_id: int
+    campaign_name: str
+    total_sends: int
+    total_clicks: int
+    clicks: List[ClickDetail]
+
+
 class RecentCampaign(BaseModel):
     id: int
     name: str
@@ -132,4 +147,53 @@ async def get_dashboard_metrics(db: Session = Depends(get_db)):
         ),
         department_stats=department_stats,
         recent_campaigns=recent_campaigns
+    )
+
+
+@router.get("/campaigns/{campaign_id}/clicks", response_model=CampaignClickDetails)
+async def get_campaign_clicks(campaign_id: int, db: Session = Depends(get_db)):
+    """Obter detalhes dos cliques de uma campanha (usuários que clicaram)"""
+    
+    campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+    if not campaign:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Campanha não encontrada")
+    
+    # Query para obter usuários que clicaram
+    clicks_raw = db.query(
+        User.full_name,
+        User.email,
+        ClickEvent.created_at,
+        ClickEvent.ip_address
+    ).join(
+        CampaignSend, User.email == CampaignSend.recipient_email
+    ).join(
+        ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
+    ).filter(
+        CampaignSend.campaign_id == campaign_id
+    ).order_by(
+        ClickEvent.created_at.desc()
+    ).all()
+    
+    # Total de envios
+    total_sends = db.query(func.count(CampaignSend.id)).filter(
+        CampaignSend.campaign_id == campaign_id
+    ).scalar() or 0
+    
+    clicks = [
+        ClickDetail(
+            full_name=row.full_name or "Desconhecido",
+            email=row.email,
+            clicked_at=row.created_at,
+            ip_address=row.ip_address
+        )
+        for row in clicks_raw
+    ]
+    
+    return CampaignClickDetails(
+        campaign_id=campaign_id,
+        campaign_name=campaign.name,
+        total_sends=total_sends,
+        total_clicks=len(clicks),
+        clicks=clicks
     )
