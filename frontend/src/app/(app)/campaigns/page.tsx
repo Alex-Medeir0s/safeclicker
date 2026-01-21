@@ -89,12 +89,15 @@ export default function Campaigns() {
           description: formData.name,
           template_id: formData.template_id,
           status: "draft",
+          complexity: formData.complexity,
           target_audience: targetDepartments,
           target_department_id: targetDepartmentId,
           subject: formData.name,
           html_template: formData.html_content,
         });
         setEditingCampaign(null);
+        // Recarrega as campanhas após atualizar
+        fetchCampaigns();
       } else {
         // Criar novo template primeiro com nome único (usando timestamp)
         const timestamp = Date.now();
