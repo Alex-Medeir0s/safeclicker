@@ -123,9 +123,30 @@ python init_data.py
 
 #### Passo 6: Executar o servidor backend
 
+**Opção 1: Usando o script de inicialização (Recomendado)**
+
 ```bash
-uvicorn app.main:app --reload
+# Windows - Execute o arquivo
+.\start_server.bat
+
+# Ou use PowerShell
+.\start_server.ps1
 ```
+
+**Opção 2: Comando manual com PYTHONPATH**
+
+```bash
+# Windows (PowerShell)
+$env:PYTHONPATH="d:\safeclicker\backend"; python -m uvicorn app.main:app --reload
+
+# Windows (Command Prompt)
+set PYTHONPATH=d:\safeclicker\backend && python -m uvicorn app.main:app --reload
+
+# Linux/Mac
+export PYTHONPATH=/path/to/backend && python -m uvicorn app.main:app --reload
+```
+
+> **⚠️ Importante:** Sempre execute o comando no diretório `backend/`. O PYTHONPATH deve apontar para a pasta do backend para que o módulo `app` seja encontrado.
 
 O backend estará disponível em: **http://localhost:8000**
 
@@ -189,6 +210,12 @@ safeclicker/
 ### Backend
 
 ```bash
+# Iniciar o servidor (recomendado - configura PYTHONPATH automaticamente)
+cd backend
+.\start_server.bat      # Windows
+# ou
+.\start_server.ps1      # PowerShell
+
 # Sincronizar estrutura do banco de dados
 python sync_database.py
 
@@ -201,11 +228,11 @@ python create_test_user.py
 # Executar testes da API
 python test_api.py
 
-# Rodar servidor com reload automático
-uvicorn app.main:app --reload
+# Rodar servidor com reload automático (manual)
+python -m uvicorn app.main:app --reload
 
 # Rodar servidor em outra porta
-uvicorn app.main:app --reload --port 8001
+python -m uvicorn app.main:app --reload --port 8001
 ```
 
 ### Frontend
@@ -292,6 +319,31 @@ Documentação completa em: http://localhost:8000/docs
 
 ## 🐛 Solução de Problemas
 
+### Erro "ModuleNotFoundError: No module named 'app'"
+
+Este erro ocorre quando o `PYTHONPATH` não está configurado corretamente, especialmente após reiniciar o computador.
+
+**Solução:**
+
+1. **Use o script de inicialização (Recomendado)**
+   ```bash
+   cd backend
+   .\start_server.bat      # Windows
+   # ou
+   .\start_server.ps1      # PowerShell
+   ```
+
+2. **Ou defina o PYTHONPATH manualmente antes de rodar o servidor**
+   ```bash
+   # Windows (PowerShell)
+   $env:PYTHONPATH="d:\safeclicker\backend"; python -m uvicorn app.main:app --reload
+   
+   # Windows (Command Prompt)
+   set PYTHONPATH=d:\safeclicker\backend && python -m uvicorn app.main:app --reload
+   ```
+
+> **Dica:** Este é o erro mais comum após reiniciar o PC porque o PYTHONPATH não persiste entre reinicializações. Os scripts `start_server.bat` e `start_server.ps1` resolvem isso automaticamente.
+
 ### Erro de conexão com o banco de dados
 
 Verifique se:
@@ -313,7 +365,7 @@ Algum serviço já está usando a porta 8000 ou 3000:
 
 ```bash
 # Backend em outra porta
-uvicorn app.main:app --reload --port 8001
+python -m uvicorn app.main:app --reload --port 8001
 
 # Frontend em outra porta
 npm run dev -- -p 3001
