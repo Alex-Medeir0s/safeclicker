@@ -3,9 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usersAPI } from "@/services/api";
-import { FiBarChart2, FiTarget, FiUsers, FiGrid, FiTrendingUp } from "react-icons/fi";
+import { FiBarChart2, FiTarget, FiUsers, FiGrid, FiTrendingUp, FiBookOpen } from "react-icons/fi";
 
 const menu = [
   { label: "Dashboard", href: "/dashboard", icon: FiBarChart2 },
@@ -57,6 +57,22 @@ export function Sidebar() {
     loadUser();
   }, []);
 
+  const normalizedRole = (userRole || "").toUpperCase();
+  const filteredMenu = useMemo(() => {
+    if (normalizedRole === "COLABORADOR") {
+      return [
+        { label: "Dashboard", href: "/dashboard", icon: FiBarChart2 },
+        { label: "Treinamentos", href: "/training", icon: FiBookOpen },
+      ];
+    }
+
+    // Demais perfis mantém itens atuais e ganham Treinamentos
+    return [
+      ...menu,
+      { label: "Treinamentos", href: "/training", icon: FiBookOpen },
+    ];
+  }, [normalizedRole]);
+
   return (
     <aside className="w-64 h-screen fixed inset-y-0 left-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 text-slate-100 flex flex-col shadow-2xl animate-slide-in z-20">
       <Link href="/dashboard" className="p-6 flex items-center justify-center hover:scale-105 transition-transform duration-300">
@@ -71,7 +87,7 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex-1 px-4 space-y-2">
-        {menu.map((item, index) => (
+        {filteredMenu.map((item, index) => (
           <Link
             key={item.href}
             href={item.href}
