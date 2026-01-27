@@ -1,7 +1,7 @@
 "use client";
 
 import { StatCard } from "@/components/StatCard";
-import { FiTarget, FiCheckCircle, FiUsers, FiZap, FiBriefcase } from "react-icons/fi";
+import { FiTarget, FiCheckCircle, FiUsers, FiZap } from "react-icons/fi";
 
 interface DashboardMetrics {
   summary: {
@@ -44,7 +44,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
       </div>
 
       {/* Cards de estatísticas gerais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total de Campanhas"
           value={metrics.summary.total_campaigns}
@@ -68,12 +68,6 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
           value={`${metrics.summary.click_rate.toFixed(1)}%`}
           icon={<FiZap className="w-6 h-6" />}
           color="yellow"
-        />
-        <StatCard
-          title="Taxa de Reporte"
-          value={`${metrics.summary.report_rate.toFixed(1)}%`}
-          icon={<FiBriefcase className="w-6 h-6" />}
-          color="red"
         />
       </div>
 
