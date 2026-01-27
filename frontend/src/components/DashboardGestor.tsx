@@ -29,6 +29,13 @@ interface DashboardMetrics {
     reports: number;
     start_date: string | null;
   }>;
+  collaborators?: Array<{
+    full_name: string;
+    email: string;
+    sends: number;
+    clicks: number;
+    campaigns: string[];
+  }>;
 }
 
 interface DashboardGestorProps {
@@ -97,6 +104,39 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
                     <td className="py-3 text-right text-slate-700">{dept.sends}</td>
                     <td className="py-3 text-right text-slate-700">{dept.clicks}</td>
                     <td className="py-3 text-right text-slate-700">{dept.rate.toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {metrics.collaborators && metrics.collaborators.length > 0 && (
+        <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
+          <h2 className="text-xl font-bold mb-4 text-slate-900">Colaboradores do Departamento</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-slate-700 border-b border-slate-300">
+                  <th className="pb-3 px-4">Colaborador</th>
+                  <th className="pb-3 px-4 text-center">Emails Enviados</th>
+                  <th className="pb-3 px-4 text-center">Cliques</th>
+                  <th className="pb-3 px-4 text-center">Campanhas Enviadas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics.collaborators.map((c, idx) => (
+                  <tr key={`${c.email}-${idx}`} className="border-b border-slate-200 hover:bg-slate-50">
+                    <td className="py-3 px-4 text-slate-900">
+                      <div className="font-semibold">{c.full_name}</div>
+                      <div className="text-xs text-slate-500">{c.email}</div>
+                    </td>
+                    <td className="py-3 px-4 text-center text-slate-700">{c.sends}</td>
+                    <td className="py-3 px-4 text-center text-slate-700">{c.clicks}</td>
+                    <td className="py-3 px-4 text-center text-slate-700">
+                      {c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

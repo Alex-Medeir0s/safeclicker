@@ -118,6 +118,39 @@ export default function Reports() {
         </table>
       </div>
 
+      {data.collaborators && data.collaborators.length > 0 && (
+        <div className="bg-white p-6 rounded-lg shadow mt-8">
+          <h2 className="text-xl font-bold mb-4">Colaboradores do Departamento</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-100">
+                <tr>
+                  <th className="px-4 py-2 text-left text-sm font-semibold">Colaborador</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Emails Enviados</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Cliques</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Campanhas Enviadas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {data.collaborators.map((c: any, idx: number) => (
+                  <tr key={`${c.email}-${idx}`} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 text-sm text-slate-900">
+                      <div className="font-semibold">{c.full_name}</div>
+                      <div className="text-xs text-slate-500">{c.email}</div>
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-700">{c.sends}</td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-700">{c.clicks}</td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-700">
+                      {c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <div className="mt-6 text-center">
         <button className="bg-blue-900 hover:bg-blue-800 text-white px-6 py-2 rounded-lg">
           📥 Exportar PDF

@@ -10,7 +10,7 @@ from app.models.department import Department
 from app.models.campaign_send import CampaignSend
 from app.models.click_event import ClickEvent
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Set
 from datetime import datetime
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
@@ -21,6 +21,14 @@ class DepartmentStat(BaseModel):
     sends: int
     clicks: int
     rate: float
+
+
+class CollaboratorStat(BaseModel):
+    full_name: str
+    email: str
+    sends: int
+    clicks: int
+    campaigns: List[str]
 
 
 class ClickDetail(BaseModel):
@@ -63,6 +71,7 @@ class DashboardMetrics(BaseModel):
     summary: MetricsSummary
     department_stats: List[DepartmentStat]
     recent_campaigns: List[RecentCampaign]
+    collaborators: List[CollaboratorStat] = []
 
 
 @router.get("/dashboard", response_model=DashboardMetrics)
@@ -87,10 +96,10 @@ async def get_dashboard_metrics(
     # Calcular taxa de cliques e contagem individual de envios/cliques
     total_sends = sends_query.count()
     
-    # Clicks com escopo
+    # Clicks com escopo (contagem por envio que recebeu ao menos um clique)
     total_clicks = (
-        db.query(func.count(ClickEvent.id))
-        .join(CampaignSend, ClickEvent.campaign_send_id == CampaignSend.id)
+        db.query(func.count(func.distinct(CampaignSend.id)))
+        .join(ClickEvent, ClickEvent.campaign_send_id == CampaignSend.id)
         .join(User, CampaignSend.user_id == User.id)
     )
     
@@ -122,7 +131,7 @@ async def get_dashboard_metrics(
     if current_user.role == UserRole.TI:
         dept_stats_raw = db.query(
             Department.name,
-            func.count(CampaignSend.id).label("sends"),
+            func.count(func.distinct(CampaignSend.id)).label("sends"),
             func.count(ClickEvent.id).label("clicks")
         ).outerjoin(
             User, Department.id == User.department_id
@@ -134,7 +143,7 @@ async def get_dashboard_metrics(
     elif current_user.role == UserRole.GESTOR and current_user.department_id:
         dept_stats_raw = db.query(
             Department.name,
-            func.count(CampaignSend.id).label("sends"),
+            func.count(func.distinct(CampaignSend.id)).label("sends"),
             func.count(ClickEvent.id).label("clicks")
         ).filter(
             Department.id == current_user.department_id
@@ -159,6 +168,62 @@ async def get_dashboard_metrics(
                 rate=rate
             )
         )
+
+    # Colaboradores do departamento (apenas Gestor)
+    collaborator_stats: List[CollaboratorStat] = []
+    if current_user.role == UserRole.GESTOR and current_user.department_id:
+        dept_users = apply_scope(db.query(User), User, current_user).all()
+
+        sends_by_user = (
+            apply_scope(
+                db.query(CampaignSend.user_id, func.count(CampaignSend.id).label("sends")),
+                CampaignSend,
+                current_user,
+            )
+            .group_by(CampaignSend.user_id)
+            .all()
+        )
+
+        clicks_by_user = (
+            apply_scope(
+                db.query(CampaignSend.user_id, func.count(ClickEvent.id).label("clicks"))
+                .join(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id),
+                CampaignSend,
+                current_user,
+            )
+            .group_by(CampaignSend.user_id)
+            .all()
+        )
+
+        campaigns_by_user = (
+            apply_scope(
+                db.query(CampaignSend.user_id, Campaign.name)
+                .join(Campaign, CampaignSend.campaign_id == Campaign.id),
+                CampaignSend,
+                current_user,
+            )
+            .group_by(CampaignSend.user_id, Campaign.name)
+            .all()
+        )
+
+        sends_map: Dict[int, int] = {row[0]: row[1] or 0 for row in sends_by_user}
+        clicks_map: Dict[int, int] = {row[0]: row[1] or 0 for row in clicks_by_user}
+        campaigns_map: Dict[int, Set[str]] = {}
+        for user_id, campaign_name in campaigns_by_user:
+            if user_id not in campaigns_map:
+                campaigns_map[user_id] = set()
+            campaigns_map[user_id].add(campaign_name)
+
+        for u in dept_users:
+            collaborator_stats.append(
+                CollaboratorStat(
+                    full_name=u.full_name or u.email or "Usuário",
+                    email=u.email or "",
+                    sends=sends_map.get(u.id, 0),
+                    clicks=clicks_map.get(u.id, 0),
+                    campaigns=sorted(list(campaigns_map.get(u.id, set())))
+                )
+            )
 
     # Campanhas recentes (ordenadas por início ou criação) com scope
     recent_campaigns_query = apply_scope(db.query(Campaign), Campaign, current_user)
@@ -232,7 +297,8 @@ async def get_dashboard_metrics(
             department_campaigns=department_campaigns
         ),
         department_stats=department_stats,
-        recent_campaigns=recent_campaigns
+        recent_campaigns=recent_campaigns,
+        collaborators=collaborator_stats
     )
 
 
