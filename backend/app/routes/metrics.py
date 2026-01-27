@@ -52,6 +52,8 @@ class MetricsSummary(BaseModel):
     total_campaigns: int
     active_campaigns: int
     total_users: int
+    emails_received: int
+    emails_clicked: int
     click_rate: float
     report_rate: float
 
@@ -81,7 +83,7 @@ async def get_dashboard_metrics(
     # Contar usuários
     total_users = users_query.count()
     
-    # Calcular taxa de cliques
+    # Calcular taxa de cliques e contagem individual de envios/cliques
     total_sends = sends_query.count()
     
     # Clicks com escopo
@@ -211,6 +213,8 @@ async def get_dashboard_metrics(
             total_campaigns=total_campaigns,
             active_campaigns=active_campaigns,
             total_users=total_users,
+            emails_received=total_sends,
+            emails_clicked=total_clicks,
             click_rate=click_rate,
             report_rate=report_rate
         ),

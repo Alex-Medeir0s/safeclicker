@@ -8,6 +8,8 @@ interface DashboardMetrics {
     total_campaigns: number;
     active_campaigns: number;
     total_users: number;
+    emails_received?: number;
+    emails_clicked?: number;
     click_rate: number;
     report_rate: number;
   };
@@ -71,12 +73,12 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
 
       {/* Estatísticas do departamento */}
       {metrics.department_stats.length > 0 && (
-        <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Desempenho do Departamento</h2>
+        <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
+          <h2 className="text-xl font-bold mb-4 text-slate-900">Desempenho do Departamento</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-gray-400 border-b border-gray-700">
+                <tr className="text-left text-slate-700 border-b border-slate-300">
                   <th className="pb-3">Departamento</th>
                   <th className="pb-3 text-right">Envios</th>
                   <th className="pb-3 text-right">Cliques</th>
@@ -85,11 +87,11 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
               </thead>
               <tbody>
                 {metrics.department_stats.map((dept, idx) => (
-                  <tr key={idx} className="border-b border-gray-700/50">
-                    <td className="py-3">{dept.department}</td>
-                    <td className="py-3 text-right">{dept.sends}</td>
-                    <td className="py-3 text-right">{dept.clicks}</td>
-                    <td className="py-3 text-right">{dept.rate.toFixed(1)}%</td>
+                  <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                    <td className="py-3 text-slate-900">{dept.department}</td>
+                    <td className="py-3 text-right text-slate-700">{dept.sends}</td>
+                    <td className="py-3 text-right text-slate-700">{dept.clicks}</td>
+                    <td className="py-3 text-right text-slate-700">{dept.rate.toFixed(1)}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -100,18 +102,18 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
 
       {/* Campanhas recentes do departamento */}
       {metrics.recent_campaigns && metrics.recent_campaigns.length > 0 && (
-        <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Campanhas do Departamento</h2>
+        <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
+          <h2 className="text-xl font-bold mb-4 text-slate-900">Campanhas do Departamento</h2>
           <div className="space-y-3">
             {metrics.recent_campaigns.map((campaign) => (
               <div
                 key={campaign.id}
                 onClick={() => onCampaignClick(campaign.id)}
-                className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg hover:bg-gray-700 cursor-pointer transition"
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition"
               >
                 <div>
-                  <h3 className="font-semibold">{campaign.name}</h3>
-                  <p className="text-sm text-gray-400">
+                  <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
+                  <p className="text-sm text-slate-600">
                     {new Date(campaign.start_date || "").toLocaleDateString("pt-BR")}
                   </p>
                 </div>

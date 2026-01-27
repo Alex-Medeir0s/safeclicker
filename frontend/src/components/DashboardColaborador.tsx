@@ -8,8 +8,9 @@ interface DashboardMetrics {
     total_campaigns: number;
     active_campaigns: number;
     total_users: number;
+    emails_received: number;
+    emails_clicked: number;
     click_rate: number;
-    report_rate: number;
   };
   recent_campaigns?: Array<{
     id: number;
@@ -40,39 +41,39 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
       {/* Cards de estatísticas pessoais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Treinamentos Recebidos"
-          value={metrics.summary.total_campaigns}
-          icon={<FiTarget className="w-6 h-6" />}
-          color="blue"
-        />
-        <StatCard
           title="Pontuação de Segurança"
           value={`${securityScore.toFixed(0)}%`}
           icon={<FiAward className="w-6 h-6" />}
           color="green"
         />
         <StatCard
-          title="Cliques em Phishing"
-          value={`${metrics.summary.click_rate.toFixed(1)}%`}
+          title="E-mails Recebidos"
+          value={metrics.summary.emails_received}
+          icon={<FiTarget className="w-6 h-6" />}
+          color="blue"
+        />
+        <StatCard
+          title="E-mails Clicados"
+          value={metrics.summary.emails_clicked}
           icon={<FiAlertCircle className="w-6 h-6" />}
           color="red"
         />
         <StatCard
-          title="Taxa de Reporte"
-          value={`${metrics.summary.report_rate.toFixed(1)}%`}
+          title="Taxa de Cliques"
+          value={`${metrics.summary.click_rate.toFixed(1)}%`}
           icon={<FiZap className="w-6 h-6" />}
           color="yellow"
         />
       </div>
 
       {/* Feedback de desempenho */}
-      <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Seu Desempenho</h2>
+      <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
+        <h2 className="text-xl font-bold mb-4 text-slate-900">Seu Desempenho</h2>
         <div className="space-y-4">
           {securityScore >= 90 && (
             <div className="p-4 bg-green-900/20 border border-green-700 rounded-lg">
               <h3 className="font-semibold text-green-400 mb-2">🎉 Excelente!</h3>
-              <p className="text-gray-300">
+              <p className="text-slate-700">
                 Você está demonstrando alta conscientização sobre segurança. Continue assim!
               </p>
             </div>
@@ -80,7 +81,7 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
           {securityScore >= 70 && securityScore < 90 && (
             <div className="p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
               <h3 className="font-semibold text-yellow-400 mb-2">👍 Bom trabalho!</h3>
-              <p className="text-gray-300">
+              <p className="text-slate-700">
                 Você está indo bem, mas há espaço para melhorias. Continue atento aos treinamentos.
               </p>
             </div>
@@ -88,7 +89,7 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
           {securityScore < 70 && (
             <div className="p-4 bg-red-900/20 border border-red-700 rounded-lg">
               <h3 className="font-semibold text-red-400 mb-2">⚠️ Atenção Necessária</h3>
-              <p className="text-gray-300">
+              <p className="text-slate-700">
                 Recomendamos revisar os materiais de treinamento e ter mais cautela com e-mails suspeitos.
               </p>
             </div>
@@ -98,17 +99,17 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
 
       {/* Campanhas recebidas */}
       {metrics.recent_campaigns && metrics.recent_campaigns.length > 0 && (
-        <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold mb-4">Treinamentos Recentes</h2>
+        <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
+          <h2 className="text-xl font-bold mb-4 text-slate-900">Treinamentos Recentes</h2>
           <div className="space-y-3">
             {metrics.recent_campaigns.map((campaign) => (
               <div
                 key={campaign.id}
-                className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
               >
                 <div>
-                  <h3 className="font-semibold">{campaign.name}</h3>
-                  <p className="text-sm text-gray-400">
+                  <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
+                  <p className="text-sm text-slate-600">
                     {new Date(campaign.start_date || "").toLocaleDateString("pt-BR")}
                   </p>
                 </div>
@@ -126,9 +127,9 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
       )}
 
       {/* Dicas de segurança */}
-      <div className="bg-gray-800 rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Dicas de Segurança</h2>
-        <ul className="space-y-2 text-gray-300">
+      <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
+        <h2 className="text-xl font-bold mb-4 text-slate-900">Dicas de Segurança</h2>
+        <ul className="space-y-2 text-slate-700">
           <li className="flex items-start gap-2">
             <span className="text-blue-400 mt-1">•</span>
             <span>Sempre verifique o remetente do e-mail antes de clicar em links</span>
