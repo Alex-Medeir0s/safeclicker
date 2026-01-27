@@ -143,13 +143,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-slate-200 text-center">
-              <p className="text-sm text-slate-600 mb-2">Credenciais de teste:</p>
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 space-y-1">
-                <p className="font-mono text-sm font-semibold text-slate-700">📧 admin@safeclicker.com</p>
-                <p className="font-mono text-sm font-semibold text-slate-700">🔑 admin123</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

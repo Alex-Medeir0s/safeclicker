@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.core.database import get_db
 from app.models.user import User
 from app.core.security import verify_password, create_access_token, get_current_user
@@ -39,13 +40,23 @@ class LoginResponse(BaseModel):
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Login endpoint - retorna token JWT com role e department_id"""
-    user = db.query(User).filter(User.email == request.email).first()
+    # Normaliza o email para evitar erro de maiúsculas/minúsculas ou espaços
+    email_normalized = request.email.strip().lower()
+    print(f"DEBUG: Login attempt for email: {request.email} (normalized: {email_normalized})")
+    user = (
+        db.query(User)
+        .filter(func.lower(User.email) == email_normalized)
+        .first()
+    )
     
     if not user:
+        print(f"DEBUG: User not found for: {email_normalized}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou senha incorretos"
         )
+    
+    print(f"DEBUG: User found: {user.email}, stored_hash: {user.hashed_password[:20]}..., password length: {len(request.password)}")
     
     # Validação de senha - detecta tipo de hash
     password_valid = False
@@ -53,16 +64,21 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     # Verifica se é hash SHA256 (64 caracteres hex) ou bcrypt (começa com $2b$)
     if len(user.hashed_password) == 64 and all(c in '0123456789abcdef' for c in user.hashed_password):
         # Hash SHA256 - para usuários de teste
+        print(f"DEBUG: Checking SHA256 hash")
         password_valid = simple_verify(request.password, user.hashed_password)
+        print(f"DEBUG: SHA256 result: {password_valid}")
     else:
         # Tenta bcrypt (para usuários antigos)
         try:
+            print(f"DEBUG: Checking bcrypt hash")
             password_valid = verify_password(request.password, user.hashed_password)
+            print(f"DEBUG: bcrypt result: {password_valid}")
         except Exception as e:
             print(f"Erro ao verificar senha bcrypt: {e}")
             password_valid = False
     
     if not password_valid:
+        print(f"DEBUG: Password validation failed")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou senha incorretos"
