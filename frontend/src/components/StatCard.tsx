@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 export function StatCard({
   title,
   value,
@@ -6,9 +8,9 @@ export function StatCard({
   trend,
 }: {
   title: string;
-  value: string;
+  value: string | number;
   color?: string;
-  icon?: string;
+  icon?: ReactNode;
   trend?: { value: string; isPositive: boolean };
 }) {
   return (

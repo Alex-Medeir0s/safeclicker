@@ -1,12 +1,13 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import datetime
+from app.models.user import UserRole
 
 
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
-    role: Optional[str] = "colaborador"
+    role: Optional[UserRole] = UserRole.COLABORADOR
     department_id: Optional[int] = None
 
 
@@ -17,13 +18,17 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
-    role: Optional[str] = None
+    role: Optional[UserRole] = None
     password: Optional[str] = None
     department_id: Optional[int] = None
 
 
-class UserRead(UserBase):
+class UserRead(BaseModel):
     id: int
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    department_id: Optional[int] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

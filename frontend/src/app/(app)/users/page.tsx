@@ -9,6 +9,7 @@ interface User {
   full_name: string;
   email: string;
   role: string;
+  department_id?: number | null;
   created_at: string;
 }
 
@@ -28,7 +29,7 @@ export default function Users() {
     full_name: "",
     email: "",
     password: "",
-    role: "colaborador" as string,
+    role: "COLABORADOR" as string,
     department_id: null as number | null,
   });
 
@@ -64,6 +65,15 @@ export default function Users() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar que GESTOR/COLABORADOR tem departamento
+    if (!editingUser && (formData.role === "GESTOR" || formData.role === "COLABORADOR")) {
+      if (!formData.department_id) {
+        alert("❌ Usuários com perfil Gestor ou Colaborador precisam ter um departamento definido");
+        return;
+      }
+    }
+    
     try {
       if (editingUser) {
         // Atualizar usuário existente
@@ -82,7 +92,7 @@ export default function Users() {
         // Criar novo usuário
         await api.post("/users/", formData);
       }
-      setFormData({ full_name: "", email: "", password: "", role: "colaborador", department_id: null });
+      setFormData({ full_name: "", email: "", password: "", role: "COLABORADOR", department_id: null });
       setShowForm(false);
       fetchUsers();
     } catch (error) {
@@ -97,7 +107,7 @@ export default function Users() {
       email: user.email,
       password: "",
       role: user.role,
-      department_id: null,
+      department_id: user.department_id || null,
     });
     setShowForm(true);
   };
@@ -136,7 +146,7 @@ export default function Users() {
         <button
           onClick={() => {
             setEditingUser(null);
-            setFormData({ full_name: "", email: "", password: "", role: "colaborador", department_id: null });
+            setFormData({ full_name: "", email: "", password: "", role: "COLABORADOR", department_id: null });
             setShowForm(!showForm);
           }}
           className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
@@ -198,15 +208,20 @@ export default function Users() {
                   className="input w-full"
                   required
                 >
-                  <option value="colaborador">Colaborador</option>
-                  <option value="gestor">Gestor</option>
-                  <option value="ti">T.I</option>
+                  <option value="COLABORADOR">Colaborador</option>
+                  <option value="GESTOR">Gestor</option>
+                  <option value="TI">T.I</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">🏢 Departamento</label>
+              <label className="block text-sm font-medium mb-2">
+                🏢 Departamento
+                {!editingUser && (formData.role === "GESTOR" || formData.role === "COLABORADOR") && 
+                  <span className="text-red-500"> *</span>
+                }
+              </label>
               <select
                 value={formData.department_id || ""}
                 onChange={(e) => setFormData({ 
@@ -214,8 +229,9 @@ export default function Users() {
                   department_id: e.target.value ? parseInt(e.target.value) : null 
                 })}
                 className="input w-full"
+                required={!editingUser && (formData.role === "GESTOR" || formData.role === "COLABORADOR")}
               >
-                <option value="">Selecione um departamento (opcional)</option>
+                <option value="">Selecione um departamento {!editingUser && (formData.role === "GESTOR" || formData.role === "COLABORADOR") ? "(obrigatório)" : "(opcional)"}</option>
                 {departments.map((dept) => (
                   <option key={dept.id} value={dept.id}>
                     {dept.name}
@@ -236,7 +252,7 @@ export default function Users() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingUser(null);
-                  setFormData({ full_name: "", email: "", password: "", role: "colaborador", department_id: null });
+                  setFormData({ full_name: "", email: "", password: "", role: "COLABORADOR", department_id: null });
                 }}
                 className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2.5 rounded-xl font-semibold transition-all duration-300"
               >
@@ -275,9 +291,8 @@ export default function Users() {
                   <td className="px-6 py-4 text-sm text-slate-600">{user.email}</td>
                   <td className="px-6 py-4 text-sm">
                     <span className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm ${
-                      user.role === "admin" ? "bg-gradient-to-r from-red-500 to-pink-500 text-white" :
-                      user.role === "ti" ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white" :
-                      user.role === "gestor" ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white" :
+                      user.role === "TI" ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white" :
+                      user.role === "GESTOR" ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white" :
                       "bg-gradient-to-r from-slate-400 to-slate-500 text-white"
                     }`}>
                       {user.role}

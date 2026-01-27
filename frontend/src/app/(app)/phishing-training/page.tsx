@@ -1,9 +1,9 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function PhishingTraining() {
+function PhishingTrainingContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const [loading, setLoading] = useState(true);
@@ -140,5 +140,13 @@ export default function PhishingTraining() {
 
       </div>
     </div>
+  );
+}
+
+export default function PhishingTraining() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><p>Carregando...</p></div>}>
+      <PhishingTrainingContent />
+    </Suspense>
   );
 }

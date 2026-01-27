@@ -45,6 +45,19 @@ export default function Campaigns() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Limpar localStorage de departamentos em cache
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("cached_departments");
+        if (cached) {
+          console.log("🧹 Removendo cache de departamentos");
+          localStorage.removeItem("cached_departments");
+        }
+      } catch (e) {
+        console.error("Erro ao limpar cache:", e);
+      }
+    }
+    
     fetchCampaigns();
     fetchDepartments();
   }, [router]);
@@ -52,6 +65,7 @@ export default function Campaigns() {
   const fetchDepartments = async () => {
     try {
       const response = await api.get("/departments/");
+      console.log("✅ Departamentos carregados da API:", response.data);
       setDepartments(response.data);
     } catch (error) {
       console.error("Erro ao buscar departamentos:", error);
@@ -144,6 +158,12 @@ export default function Campaigns() {
 
   const handleEditClick = async (campaign: Campaign) => {
     setEditingCampaign(campaign);
+    
+    // Extrair IDs dos departamentos alvo
+    const deptIds = campaign.target_departments 
+      ? campaign.target_departments.split(",").map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+      : (campaign.target_department_id ? [campaign.target_department_id] : []);
+    setSelectedDeptIds(deptIds);
     
     try {
       // Busca o template para pegar o HTML
@@ -267,29 +287,44 @@ export default function Campaigns() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Departamentos Alvo</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium">Departamentos Alvo</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    console.log("🔄 Recarregando departamentos...");
+                    fetchDepartments();
+                  }}
+                  className="text-xs px-2 py-1 bg-slate-200 hover:bg-slate-300 rounded text-slate-700"
+                >
+                  Recarregar
+                </button>
+              </div>
               <div className="border border-slate-300 rounded-lg p-3 bg-slate-50 max-h-48 overflow-y-auto">
                 {departments.length === 0 ? (
                   <p className="text-sm text-slate-500">Nenhum departamento disponível</p>
                 ) : (
                   <div className="space-y-2">
-                    {departments.map((dept) => (
-                      <label key={dept.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded">
-                        <input
-                          type="checkbox"
-                          checked={selectedDeptIds.includes(dept.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedDeptIds([...selectedDeptIds, dept.id]);
-                            } else {
-                              setSelectedDeptIds(selectedDeptIds.filter((id) => id !== dept.id));
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm">{dept.name}</span>
-                      </label>
-                    ))}
+                    {(() => {
+                      console.log("📋 Renderizando departamentos:", departments);
+                      return departments.map((dept) => (
+                        <label key={dept.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedDeptIds.includes(dept.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDeptIds([...selectedDeptIds, dept.id]);
+                              } else {
+                                setSelectedDeptIds(selectedDeptIds.filter((id) => id !== dept.id));
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm">{dept.name}</span>
+                        </label>
+                      ));
+                    })()}
                   </div>
                 )}
               </div>
@@ -447,21 +482,72 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
   };
 
   const handleSend = async () => {
-    if (!confirm("Tem certeza que deseja enviar essa campanha para os usuários selecionados?")) {
+    // Validar se tem departamento alvo
+    if (!campaign.target_department_id) {
+      alert("❌ Esta campanha não tem um departamento alvo configurado.\n\nEdite a campanha e selecione um departamento antes de enviar.");
+      return;
+    }
+
+    // Encontrar nomes dos departamentos alvo
+    let deptName = "Desconhecido";
+    
+    // Se tiver target_audience com múltiplos departamentos
+    if (campaign.target_audience) {
+      const deptIds = campaign.target_audience.split(",").map(d => parseInt(d.trim())).filter(d => !isNaN(d));
+      const deptNames = deptIds
+        .map(id => {
+          const dept = departments.find(d => d.id === id);
+          return dept ? dept.name : `Dept ${id}`;
+        })
+        .join(", ");
+      deptName = deptNames;
+    } else if (campaign.target_department_id) {
+      const targetDept = departments.find(d => d.id === campaign.target_department_id);
+      deptName = targetDept ? targetDept.name : `Departamento ${campaign.target_department_id}`;
+    }
+
+    const confirmMessage = `⚠️ ATENÇÃO - Confirme o envio:\n\n` +
+      `📧 Campanha: ${campaign.name}\n` +
+      `🏢 Departamento(s) Alvo: ${deptName}\n\n` +
+      `Esta ação enviará a campanha para TODOS os usuários ativos dos departamentos.\n\n` +
+      `Tem certeza que deseja continuar?`;
+
+    if (!confirm(confirmMessage)) {
       return;
     }
 
     setSending(true);
     try {
       const response = await api.post(`/campaigns/${campaign.id}/send`);
-      const { sent, recipients, errors } = response.data;
+      const { sent, recipients, errors, departments: sentDepartments } = response.data;
+      
+      let deptInfo = "departamento(s)";
+      if (campaign.target_audience) {
+        const deptIds = campaign.target_audience.split(",").map(d => parseInt(d.trim())).filter(d => !isNaN(d));
+        const deptNames = deptIds
+          .map(id => {
+            const dept = departments.find(d => d.id === id);
+            return dept ? dept.name : `Dept ${id}`;
+          })
+          .join(", ");
+        deptInfo = deptNames;
+      } else if (campaign.target_department_id) {
+        const targetDept = departments.find(d => d.id === campaign.target_department_id);
+        deptInfo = targetDept ? targetDept.name : `Departamento ${campaign.target_department_id}`;
+      }
       
       let message = `✅ Campanha enviada com sucesso!\n\n`;
-      message += `📧 Emails enviados: ${sent}/${recipients}\n`;
+      message += `📧 Emails enviados: ${sent}/${recipients} usuários\n`;
+      message += `🏢 Departamento(s): ${deptInfo}\n`;
       
       if (errors && errors.length > 0) {
-        message += `\n⚠️ Erros (${errors.length}): `;
-        message += errors.map((e: any) => `${e.email}: ${e.error}`).join("\n");
+        message += `\n⚠️ Erros (${errors.length}):\n`;
+        errors.slice(0, 5).forEach((e: any) => {
+          message += `  • ${e.email}: ${e.error}\n`;
+        });
+        if (errors.length > 5) {
+          message += `  ... e ${errors.length - 5} outros erros`;
+        }
       }
       
       alert(message);
@@ -531,8 +617,9 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
           </button>
           <button 
             onClick={handleSend}
-            disabled={campaign.status !== "draft" || sending}
+            disabled={campaign.status !== "draft" || sending || !campaign.target_department_id}
             className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:hover:scale-100 flex items-center justify-center gap-2"
+            title={!campaign.target_department_id ? "Configure um departamento alvo antes de enviar" : ""}
           >
             {sending ? <><FiLoader className="w-4 h-4 animate-spin" /> Enviando...</> : campaign.status === "draft" ? <><FiSend className="w-4 h-4" /> Enviar</> : <><FiCheck className="w-4 h-4" /> Enviada</>}
           </button>

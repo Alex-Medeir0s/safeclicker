@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.core.database import get_db
+from app.core.security import get_current_user
+from app.core.access_control import apply_scope
 from app.models.campaign import Campaign
 from app.models.user import User
 from app.models.department import Department
@@ -61,38 +63,76 @@ class DashboardMetrics(BaseModel):
 
 
 @router.get("/dashboard", response_model=DashboardMetrics)
-async def get_dashboard_metrics(db: Session = Depends(get_db)):
-    """Obter métricas do dashboard"""
+async def get_dashboard_metrics(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Obter métricas do dashboard com filtro por role e departamento"""
+    
+    # Aplicar scope nas queries
+    campaigns_query = apply_scope(db.query(Campaign), Campaign, current_user)
+    users_query = apply_scope(db.query(User), User, current_user)
+    sends_query = apply_scope(db.query(CampaignSend), CampaignSend, current_user)
     
     # Contar campanhas
-    total_campaigns = db.query(func.count(Campaign.id)).scalar() or 0
-    active_campaigns = db.query(func.count(Campaign.id)).filter(
-        Campaign.status == "active"
-    ).scalar() or 0
+    total_campaigns = campaigns_query.count()
+    active_campaigns = campaigns_query.filter(Campaign.status == "active").count()
     
     # Contar usuários
-    total_users = db.query(func.count(User.id)).scalar() or 0
+    total_users = users_query.count()
     
     # Calcular taxa de cliques
-    total_sends = db.query(func.count(CampaignSend.id)).scalar() or 0
-    total_clicks = db.query(func.count(ClickEvent.id)).scalar() or 0
+    total_sends = sends_query.count()
+    
+    # Clicks com escopo
+    total_clicks = (
+        db.query(func.count(ClickEvent.id))
+        .join(CampaignSend, ClickEvent.campaign_send_id == CampaignSend.id)
+        .join(User, CampaignSend.user_id == User.id)
+    )
+    
+    # Aplicar filtro de departamento para clicks
+    from app.models.user import UserRole
+    if current_user.role == UserRole.GESTOR:
+        total_clicks = total_clicks.filter(User.department_id == current_user.department_id)
+    elif current_user.role == UserRole.COLABORADOR:
+        total_clicks = total_clicks.filter(CampaignSend.user_id == current_user.id)
+    
+    total_clicks = total_clicks.scalar() or 0
     click_rate = (total_clicks / total_sends * 100) if total_sends > 0 else 0
     
     # Taxa de reporte (simulado)
     report_rate = 5.0  # Placeholder
     
-    # Estatísticas por departamento
-    dept_stats_raw = db.query(
-        Department.name,
-        func.count(CampaignSend.id).label("sends"),
-        func.count(ClickEvent.id).label("clicks")
-    ).outerjoin(
-        User, Department.id == User.department_id
-    ).outerjoin(
-        CampaignSend, User.email == CampaignSend.recipient_email
-    ).outerjoin(
-        ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
-    ).group_by(Department.name).all()
+    # Estatísticas por departamento (apenas para TI e Gestor do próprio dept)
+    if current_user.role == UserRole.TI:
+        dept_stats_raw = db.query(
+            Department.name,
+            func.count(CampaignSend.id).label("sends"),
+            func.count(ClickEvent.id).label("clicks")
+        ).outerjoin(
+            User, Department.id == User.department_id
+        ).outerjoin(
+            CampaignSend, User.id == CampaignSend.user_id
+        ).outerjoin(
+            ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
+        ).group_by(Department.name).all()
+    elif current_user.role == UserRole.GESTOR and current_user.department_id:
+        dept_stats_raw = db.query(
+            Department.name,
+            func.count(CampaignSend.id).label("sends"),
+            func.count(ClickEvent.id).label("clicks")
+        ).filter(
+            Department.id == current_user.department_id
+        ).outerjoin(
+            User, Department.id == User.department_id
+        ).outerjoin(
+            CampaignSend, User.id == CampaignSend.user_id
+        ).outerjoin(
+            ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
+        ).group_by(Department.name).all()
+    else:
+        dept_stats_raw = []
     
     department_stats = []
     for dept_name, sends, clicks in dept_stats_raw:
@@ -106,15 +146,15 @@ async def get_dashboard_metrics(db: Session = Depends(get_db)):
             )
         )
 
-    # Campanhas recentes (ordenadas por início ou criação)
+    # Campanhas recentes (ordenadas por início ou criação) com scope
+    recent_campaigns_query = apply_scope(db.query(Campaign), Campaign, current_user)
     recent_campaigns_raw = (
-        db.query(
+        recent_campaigns_query
+        .add_columns(
             Campaign.id,
             Campaign.name,
             Campaign.status,
             func.coalesce(Campaign.start_date, Campaign.created_at).label("start_date"),
-            func.count(CampaignSend.id).label("users"),
-            func.count(ClickEvent.id).label("clicks"),
         )
         .outerjoin(CampaignSend, Campaign.id == CampaignSend.campaign_id)
         .outerjoin(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id)
@@ -124,18 +164,47 @@ async def get_dashboard_metrics(db: Session = Depends(get_db)):
         .all()
     )
 
-    recent_campaigns = [
-        RecentCampaign(
-            id=row.id,
-            name=row.name,
-            status=row.status or "",
-            users=row.users or 0,
-            clicks=row.clicks or 0,
-            reports=0,  # Placeholder até termos eventos de reporte
-            start_date=row.start_date,
+    recent_campaigns = []
+    for row in recent_campaigns_raw:
+        # Contar sends e clicks para esta campanha com scope
+        campaign_id = row.id if hasattr(row, 'id') else row[1]
+        campaign_name = row.name if hasattr(row, 'name') else row[2]
+        campaign_status = row.status if hasattr(row, 'status') else row[3]
+        start_date = row.start_date if hasattr(row, 'start_date') else row[4]
+        
+        users_count = (
+            apply_scope(db.query(CampaignSend), CampaignSend, current_user)
+            .filter(CampaignSend.campaign_id == campaign_id)
+            .count()
         )
-        for row in recent_campaigns_raw
-    ]
+        
+        clicks_count = (
+            db.query(ClickEvent)
+            .join(CampaignSend, ClickEvent.campaign_send_id == CampaignSend.id)
+            .filter(CampaignSend.campaign_id == campaign_id)
+        )
+        
+        from app.models.user import UserRole
+        if current_user.role == UserRole.GESTOR:
+            clicks_count = clicks_count.join(User, CampaignSend.user_id == User.id).filter(
+                User.department_id == current_user.department_id
+            )
+        elif current_user.role == UserRole.COLABORADOR:
+            clicks_count = clicks_count.filter(CampaignSend.user_id == current_user.id)
+        
+        clicks_count = clicks_count.count()
+        
+        recent_campaigns.append(
+            RecentCampaign(
+                id=campaign_id,
+                name=campaign_name,
+                status=campaign_status or "",
+                users=users_count,
+                clicks=clicks_count,
+                reports=0,
+                start_date=start_date,
+            )
+        )
     
     return DashboardMetrics(
         summary=MetricsSummary(
@@ -151,34 +220,50 @@ async def get_dashboard_metrics(db: Session = Depends(get_db)):
 
 
 @router.get("/campaigns/{campaign_id}/clicks", response_model=CampaignClickDetails)
-async def get_campaign_clicks(campaign_id: int, db: Session = Depends(get_db)):
+async def get_campaign_clicks(
+    campaign_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Obter detalhes dos cliques de uma campanha (usuários que clicaram)"""
+    from app.core.access_control import check_resource_access
     
     campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
     if not campaign:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Campanha não encontrada")
     
-    # Query para obter usuários que clicaram
-    clicks_raw = db.query(
+    # Verificar acesso
+    if not check_resource_access(campaign, current_user):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    
+    # Query para obter usuários que clicaram com scope
+    clicks_query = db.query(
         User.full_name,
         User.email,
         ClickEvent.created_at,
         ClickEvent.ip_address
     ).join(
-        CampaignSend, User.email == CampaignSend.recipient_email
+        CampaignSend, User.id == CampaignSend.user_id
     ).join(
         ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
     ).filter(
         CampaignSend.campaign_id == campaign_id
-    ).order_by(
-        ClickEvent.created_at.desc()
-    ).all()
+    )
     
-    # Total de envios
-    total_sends = db.query(func.count(CampaignSend.id)).filter(
-        CampaignSend.campaign_id == campaign_id
-    ).scalar() or 0
+    # Aplicar filtro de acesso
+    from app.models.user import UserRole
+    if current_user.role == UserRole.GESTOR:
+        clicks_query = clicks_query.filter(User.department_id == current_user.department_id)
+    elif current_user.role == UserRole.COLABORADOR:
+        clicks_query = clicks_query.filter(User.id == current_user.id)
+    
+    clicks_raw = clicks_query.order_by(ClickEvent.created_at.desc()).all()
+    
+    # Total de envios com scope
+    sends_query = apply_scope(db.query(CampaignSend), CampaignSend, current_user)
+    total_sends = sends_query.filter(CampaignSend.campaign_id == campaign_id).count()
     
     clicks = [
         ClickDetail(

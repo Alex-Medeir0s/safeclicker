@@ -9,6 +9,7 @@ class CampaignBase(BaseModel):
     description: Optional[str] = None
     html_template: Optional[str] = None
     template_id: int
+    department_id: Optional[int] = None
     status: str = "draft"
     complexity: Optional[str] = "basico"
     trigger: Optional[str] = None
@@ -28,6 +29,7 @@ class CampaignUpdate(BaseModel):
     description: Optional[str] = None
     html_template: Optional[str] = None
     template_id: Optional[int] = None
+    department_id: Optional[int] = None
     status: Optional[str] = None
     complexity: Optional[str] = None
     trigger: Optional[str] = None
@@ -40,6 +42,7 @@ class CampaignUpdate(BaseModel):
 class CampaignRead(CampaignBase):
     id: int
     created_by: int
+    department_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

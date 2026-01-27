@@ -20,12 +20,23 @@ export default function LoginPage() {
     try {
       const response = await authAPI.login({ email, password });
       
-      // Armazenar token se retornado
+      // Armazenar token JWT
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
       }
       
-      // Armazenar informações do usuário (sempre sobrescrever para evitar dados de sessão anterior)
+      // Armazenar informações completas do usuário para uso no dashboard
+      const userData = {
+        id: response.data.id,
+        email: response.data.email,
+        full_name: response.data.full_name,
+        role: response.data.role,
+        department_id: response.data.department_id
+      };
+      
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      // Manter compatibilidade com código antigo
       localStorage.setItem("userId", response.data.id?.toString() || "");
       localStorage.setItem("userEmail", response.data.email || "");
       localStorage.setItem("userRole", response.data.role || "");

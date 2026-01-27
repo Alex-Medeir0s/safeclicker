@@ -14,6 +14,7 @@ class Campaign(Base):
     html_template = Column(Text, nullable=True)
     template_id = Column(Integer, ForeignKey("templates.id"))
     created_by = Column(Integer, ForeignKey("users.id"))
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
     status = Column(String, default="draft")  # draft, active, paused, completed
     complexity = Column(String, default="basico")  # basico, intermediario, avancado
     trigger = Column(String, nullable=True)  # urgencia, autoridade, medo, recompensa
@@ -27,5 +28,6 @@ class Campaign(Base):
     template = relationship("Template", back_populates="campaigns")
     created_by_user = relationship("User", back_populates="campaigns")
     campaign_sends = relationship("CampaignSend", back_populates="campaign")
-    target_department = relationship("Department")
+    department = relationship("Department", foreign_keys=[department_id])
+    target_department = relationship("Department", foreign_keys=[target_department_id])
 
