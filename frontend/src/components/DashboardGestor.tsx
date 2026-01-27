@@ -1,7 +1,7 @@
 "use client";
 
 import { StatCard } from "@/components/StatCard";
-import { FiTarget, FiCheckCircle, FiUsers, FiZap } from "react-icons/fi";
+import { FiTarget, FiMail, FiUsers, FiZap } from "react-icons/fi";
 
 interface DashboardMetrics {
   summary: {
@@ -12,6 +12,7 @@ interface DashboardMetrics {
     emails_clicked?: number;
     click_rate: number;
     report_rate: number;
+    department_campaigns?: number;
   };
   department_stats: Array<{
     department: string;
@@ -36,6 +37,10 @@ interface DashboardGestorProps {
 }
 
 export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorProps) {
+  const deptClickRate =
+    (metrics.department_stats && metrics.department_stats[0]?.rate) ??
+    metrics.summary.click_rate;
+
   return (
     <div className="space-y-6">
       <div>
@@ -47,14 +52,14 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Campanhas do Departamento"
-          value={metrics.summary.total_campaigns}
+          value={metrics.summary.department_campaigns ?? metrics.summary.total_campaigns}
           icon={<FiTarget className="w-6 h-6" />}
           color="blue"
         />
         <StatCard
-          title="Campanhas Ativas"
-          value={metrics.summary.active_campaigns}
-          icon={<FiCheckCircle className="w-6 h-6" />}
+          title="Emails Enviados"
+          value={metrics.summary.emails_received}
+          icon={<FiMail className="w-6 h-6" />}
           color="green"
         />
         <StatCard
@@ -65,7 +70,7 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
         />
         <StatCard
           title="Taxa de Cliques"
-          value={`${metrics.summary.click_rate.toFixed(1)}%`}
+          value={`${deptClickRate.toFixed(1)}%`}
           icon={<FiZap className="w-6 h-6" />}
           color="yellow"
         />

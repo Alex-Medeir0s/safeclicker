@@ -56,6 +56,7 @@ class MetricsSummary(BaseModel):
     emails_clicked: int
     click_rate: float
     report_rate: float
+    department_campaigns: Optional[int] = None
 
 
 class DashboardMetrics(BaseModel):
@@ -105,6 +106,17 @@ async def get_dashboard_metrics(
     
     # Taxa de reporte (simulado)
     report_rate = 5.0  # Placeholder
+    
+    # Contar campanhas do departamento (para Gestor)
+    department_campaigns = None
+    if current_user.role == UserRole.GESTOR and current_user.department_id:
+        # Contar campanhas que têm usuários do departamento do gestor
+        department_campaigns = (
+            db.query(func.count(func.distinct(CampaignSend.campaign_id)))
+            .join(User, CampaignSend.user_id == User.id)
+            .filter(User.department_id == current_user.department_id)
+            .scalar() or 0
+        )
     
     # Estatísticas por departamento (apenas para TI e Gestor do próprio dept)
     if current_user.role == UserRole.TI:
@@ -216,7 +228,8 @@ async def get_dashboard_metrics(
             emails_received=total_sends,
             emails_clicked=total_clicks,
             click_rate=click_rate,
-            report_rate=report_rate
+            report_rate=report_rate,
+            department_campaigns=department_campaigns
         ),
         department_stats=department_stats,
         recent_campaigns=recent_campaigns

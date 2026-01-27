@@ -37,6 +37,10 @@ export default function Reports() {
     return <div className="text-center py-12">Erro ao carregar dados</div>;
   }
 
+  const deptClickRate =
+    (data.department_stats && data.department_stats[0]?.rate) ?? data.summary.click_rate;
+  const deptCampaigns = data.summary.department_campaigns ?? data.summary.total_campaigns;
+
   return (
     <>
       <div className="mb-8">
@@ -49,20 +53,20 @@ export default function Reports() {
           <h2 className="text-xl font-bold mb-4">Resumo Geral</h2>
           <div className="space-y-3">
             <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span>Total de Campanhas</span>
-              <span className="font-bold">{data.summary.total_campaigns}</span>
+              <span>Campanhas do Departamento</span>
+              <span className="font-bold">{deptCampaigns}</span>
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span>Campanhas Ativas</span>
-              <span className="font-bold">{data.summary.active_campaigns}</span>
+              <span>Emails Enviados</span>
+              <span className="font-bold">{data.summary.emails_received}</span>
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span>Total de Usuários</span>
+              <span>Usuários do Departamento</span>
               <span className="font-bold">{data.summary.total_users}</span>
             </div>
             <div className="flex justify-between p-3 bg-red-50 rounded border border-red-200">
               <span className="text-red-700">Taxa de Cliques</span>
-              <span className="font-bold text-red-700">{data.summary.click_rate.toFixed(1)}%</span>
+              <span className="font-bold text-red-700">{deptClickRate.toFixed(1)}%</span>
             </div>
           </div>
         </div>
@@ -72,12 +76,12 @@ export default function Reports() {
           <div className="space-y-3">
             <div className="text-center py-6 bg-emerald-50 rounded border border-emerald-200">
               <p className="text-4xl font-bold text-emerald-700">
-                {(100 - data.summary.click_rate).toFixed(1)}%
+                {(100 - deptClickRate).toFixed(1)}%
               </p>
               <p className="text-sm text-emerald-600 mt-2">Colaboradores Seguros</p>
             </div>
             <div className="text-center py-4 bg-red-50 rounded border border-red-200">
-              <p className="text-2xl font-bold text-red-700">{data.summary.click_rate.toFixed(1)}%</p>
+              <p className="text-2xl font-bold text-red-700">{deptClickRate.toFixed(1)}%</p>
               <p className="text-sm text-red-600">Taxa de Cliques</p>
             </div>
             <div className="text-center py-4 bg-blue-50 rounded border border-blue-200">

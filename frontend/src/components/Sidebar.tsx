@@ -66,7 +66,16 @@ export function Sidebar() {
       ];
     }
 
-    // Demais perfis mantém itens atuais e ganham Treinamentos
+    if (normalizedRole === "GESTOR") {
+      return [
+        { label: "Dashboard", href: "/dashboard", icon: FiBarChart2 },
+        { label: "Usuários", href: "/users", icon: FiUsers },
+        { label: "Relatórios", href: "/reports", icon: FiTrendingUp },
+        { label: "Treinamentos", href: "/training", icon: FiBookOpen },
+      ];
+    }
+
+    // TI mantém itens atuais e ganha Treinamentos
     return [
       ...menu,
       { label: "Treinamentos", href: "/training", icon: FiBookOpen },
