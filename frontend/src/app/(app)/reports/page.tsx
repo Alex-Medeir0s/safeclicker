@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function Reports() {
   const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -26,6 +29,163 @@ export default function Reports() {
       console.error("Erro ao buscar relatório:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchImageAsDataUrl = async (url: string): Promise<string> => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Falha ao carregar imagem"));
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Erro ao carregar imagem:", error);
+      return "";
+    }
+  };
+
+  const getImageSize = async (dataUrl: string): Promise<{ width: number; height: number }> => {
+    return await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.width, height: img.height });
+      img.onerror = () => reject(new Error("Falha ao obter tamanho da imagem"));
+      img.src = dataUrl;
+    });
+  };
+
+  const handleExportPdf = async () => {
+    if (!data || exporting) return;
+    setExporting(true);
+
+    try {
+      const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Logo e título
+      const logoDataUrl = await fetchImageAsDataUrl("/safeclicker-logo-branca.png");
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, pageWidth, 70, "F");
+
+      if (logoDataUrl) {
+        const logoSize = await getImageSize(logoDataUrl);
+        const maxLogoHeight = 60;
+        const scale = Math.min(1, maxLogoHeight / logoSize.height);
+        const logoWidth = logoSize.width * scale;
+        const logoHeight = logoSize.height * scale;
+        const logoX = 40;
+        const logoY = (70 - logoHeight) / 2;
+        doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoWidth, logoHeight);
+      }
+
+      doc.setFontSize(18);
+      doc.setTextColor(255, 255, 255);
+      doc.text("Relatório de Campanhas", pageWidth - 40, 40, { align: "right" });
+      doc.setTextColor(0, 0, 0);
+
+      // Resumo Geral
+      const deptClickRate =
+        (data.department_stats && data.department_stats[0]?.rate) ?? data.summary.click_rate;
+      const deptCampaigns = data.summary.department_campaigns ?? data.summary.total_campaigns;
+
+      doc.setFontSize(12);
+      doc.text("Resumo Geral", 40, 90);
+
+      autoTable(doc, {
+        startY: 100,
+        head: [["Métrica", "Valor"]],
+        body: [
+          ["Campanhas do Departamento", String(deptCampaigns)],
+          ["Emails Enviados", String(data.summary.emails_received)],
+          ["Usuários do Departamento", String(data.summary.total_users)],
+        ],
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+        margin: { left: 40, right: 40 },
+      });
+
+      let currentY = (doc as any).lastAutoTable?.finalY || 140;
+
+      // Taxa de Segurança
+      doc.setFontSize(12);
+      doc.text("Taxa de Segurança", 40, currentY + 20);
+
+      autoTable(doc, {
+        startY: currentY + 30,
+        head: [["Indicador", "Valor"]],
+        body: [
+          ["Colaboradores Seguros", `${(100 - deptClickRate).toFixed(1)}%`],
+          ["Taxa de Cliques", `${deptClickRate.toFixed(1)}%`],
+          ["Taxa de Reportes", `${data.summary.report_rate.toFixed(1)}%`],
+        ],
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+        margin: { left: 40, right: 40 },
+      });
+
+      currentY = (doc as any).lastAutoTable?.finalY || currentY + 90;
+
+      // Estatísticas por Departamento
+      if (data.department_stats && data.department_stats.length > 0) {
+        doc.setFontSize(12);
+        doc.text("Estatísticas por Departamento", 40, currentY + 20);
+
+        autoTable(doc, {
+          startY: currentY + 30,
+          head: [["Departamento", "Enviados", "Cliques", "Taxa %"]],
+          body: data.department_stats.map((dept: any) => [
+            dept.department,
+            String(dept.sends),
+            String(dept.clicks),
+            `${dept.rate.toFixed(1)}%`,
+          ]),
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+          margin: { left: 40, right: 40 },
+        });
+
+        currentY = (doc as any).lastAutoTable?.finalY || currentY + 100;
+      }
+
+      // Colaboradores do Departamento
+      if (data.collaborators && data.collaborators.length > 0) {
+        if (currentY > 700) {
+          doc.addPage();
+          currentY = 40;
+        }
+
+        doc.setFontSize(12);
+        doc.text("Colaboradores do Departamento", 40, currentY + 20);
+
+        autoTable(doc, {
+          startY: currentY + 30,
+          head: [["Colaborador", "Email", "Enviados", "Cliques", "Campanhas"]],
+          body: data.collaborators.map((c: any) => [
+            c.full_name,
+            c.email,
+            String(c.sends),
+            String(c.clicks),
+            c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-",
+          ]),
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+          margin: { left: 40, right: 40 },
+        });
+
+        currentY = (doc as any).lastAutoTable?.finalY || currentY + 100;
+      }
+
+      // Salvar o PDF
+      doc.save(`relatorio-campanhas-${new Date().toISOString().split("T")[0]}.pdf`);
+      alert("PDF exportado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+      alert("Erro ao exportar PDF. Tente novamente.");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -152,8 +312,12 @@ export default function Reports() {
       )}
 
       <div className="mt-6 text-center">
-        <button className="bg-blue-900 hover:bg-blue-800 text-white px-6 py-2 rounded-lg">
-          📥 Exportar PDF
+        <button
+          onClick={handleExportPdf}
+          disabled={exporting}
+          className="bg-blue-900 hover:bg-blue-800 text-white px-6 py-2 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+        >
+          {exporting ? "Gerando PDF..." : "📥 Exportar PDF"}
         </button>
       </div>
     </>
