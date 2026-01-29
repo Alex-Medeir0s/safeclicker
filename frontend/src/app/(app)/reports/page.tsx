@@ -117,8 +117,6 @@ export default function Reports() {
       doc.setTextColor(0, 0, 0);
 
       // Resumo Geral
-      const deptClickRate =
-        (data.department_stats && data.department_stats[0]?.rate) ?? data.summary.click_rate;
       const deptCampaigns = data.summary.department_campaigns ?? data.summary.total_campaigns;
 
       doc.setFontSize(12);
@@ -128,9 +126,9 @@ export default function Reports() {
         startY: 100,
         head: [["Métrica", "Valor"]],
         body: [
-          ["Campanhas do Departamento", String(deptCampaigns)],
-          ["Emails Enviados", String(data.summary.emails_received)],
-          ["Usuários do Departamento", String(data.summary.total_users)],
+          ["Total de Campanhas", String(deptCampaigns)],
+          ["Emails Enviados", String(totalEnviadosDepts)],
+          ["Total de Usuários", String(data.summary.total_users)],
         ],
         styles: { fontSize: 10 },
         headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
@@ -149,7 +147,6 @@ export default function Reports() {
         body: [
           ["Colaboradores Seguros", `${(100 - deptClickRate).toFixed(1)}%`],
           ["Taxa de Cliques", `${deptClickRate.toFixed(1)}%`],
-          ["Taxa de Reportes", `${data.summary.report_rate.toFixed(1)}%`],
         ],
         styles: { fontSize: 10 },
         headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
