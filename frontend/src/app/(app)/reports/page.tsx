@@ -297,8 +297,18 @@ export default function Reports() {
     return <div className="text-center py-12">Erro ao carregar dados</div>;
   }
 
-  const deptClickRate =
-    (data.department_stats && data.department_stats[0]?.rate) ?? data.summary.click_rate;
+  // Calcular totais a partir da tabela de departamentos
+  let totalEnviadosDepts = 0;
+  let totalCliquesDepts = 0;
+  
+  if (data.department_stats && data.department_stats.length > 0) {
+    data.department_stats.forEach((dept: any) => {
+      totalEnviadosDepts += dept.sends || 0;
+      totalCliquesDepts += dept.clicks || 0;
+    });
+  }
+
+  const deptClickRate = totalEnviadosDepts > 0 ? (totalCliquesDepts / totalEnviadosDepts) * 100 : 0;
   const deptCampaigns = data.summary.department_campaigns ?? data.summary.total_campaigns;
 
   return (
@@ -313,7 +323,7 @@ export default function Reports() {
           <h2 className="text-xl font-bold mb-4">Resumo Geral</h2>
           <div className="space-y-3">
             <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span>Campanhas do Departamento</span>
+              <span>Total de Campanhas</span>
               <span className="font-bold">{deptCampaigns}</span>
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
@@ -321,12 +331,8 @@ export default function Reports() {
               <span className="font-bold">{data.summary.emails_received}</span>
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span>Usuários do Departamento</span>
+              <span>Total de Usuários</span>
               <span className="font-bold">{data.summary.total_users}</span>
-            </div>
-            <div className="flex justify-between p-3 bg-red-50 rounded border border-red-200">
-              <span className="text-red-700">Taxa de Cliques</span>
-              <span className="font-bold text-red-700">{deptClickRate.toFixed(1)}%</span>
             </div>
           </div>
         </div>
@@ -343,10 +349,6 @@ export default function Reports() {
             <div className="text-center py-4 bg-red-50 rounded border border-red-200">
               <p className="text-2xl font-bold text-red-700">{deptClickRate.toFixed(1)}%</p>
               <p className="text-sm text-red-600">Taxa de Cliques</p>
-            </div>
-            <div className="text-center py-4 bg-blue-50 rounded border border-blue-200">
-              <p className="text-2xl font-bold text-blue-700">{data.summary.report_rate.toFixed(1)}%</p>
-              <p className="text-sm text-blue-600">Taxa de Reportes</p>
             </div>
           </div>
         </div>
@@ -415,32 +417,45 @@ export default function Reports() {
       {data.recent_campaigns && data.recent_campaigns.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200 mt-8">
           <h2 className="text-xl font-bold mb-4 text-slate-900">Campanhas Recentes</h2>
-          <div className="space-y-3">
-            {data.recent_campaigns.map((campaign: any) => (
-              <div
-                key={campaign.id}
-                onClick={() => fetchCampaignClicks(campaign.id)}
-                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-indigo-50 cursor-pointer transition-all duration-300 border border-slate-200 hover:border-indigo-300 hover:shadow-md"
-              >
-                <div>
-                  <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
-                  <p className="text-sm text-slate-600">
-                    {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString("pt-BR") : "Sem data"}
-                  </p>
-                </div>
-                <div className="flex gap-4 text-sm">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
-                    {campaign.users} usuários
-                  </span>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium">
-                    {campaign.clicks} cliques
-                  </span>
-                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full font-medium">
-                    {campaign.reports} reportes
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-100">
+                <tr>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Campanha</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Status</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Emails Enviados</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Cliques</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Início</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {data.recent_campaigns.map((campaign: any) => (
+                  <tr
+                    key={campaign.id}
+                    onClick={() => fetchCampaignClicks(campaign.id)}
+                    className="hover:bg-indigo-50 cursor-pointer transition-all duration-300"
+                  >
+                    <td className="px-4 py-3 text-center text-sm font-semibold text-slate-900">{campaign.name}</td>
+                    <td className="px-4 py-3 text-center text-sm">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          campaign.status === "draft"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {campaign.status === "draft" ? "Rascunho" : "Enviada"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.users}</td>
+                    <td className="px-4 py-3 text-center text-sm font-semibold text-red-600">{campaign.clicks}</td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-600">
+                      {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString("pt-BR") : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
