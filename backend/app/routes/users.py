@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.core.security import get_current_user, get_password_hash
 from app.core.access_control import apply_scope, check_resource_access
@@ -22,10 +22,27 @@ async def get_users(
     db: Session = Depends(get_db)
 ):
     """Listar usuários com filtro por role e departamento"""
-    query = db.query(User)
+    query = db.query(User).options(joinedload(User.department))
     query = apply_scope(query, User, current_user)
     users = query.offset(skip).limit(limit).all()
-    return users
+    
+    # Adicionar department_name aos usuários
+    result = []
+    for user in users:
+        user_dict = {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "department_id": user.department_id,
+            "department_name": user.department.name if user.department else None,
+            "is_active": user.is_active,
+            "created_at": user.created_at,
+            "updated_at": user.updated_at
+        }
+        result.append(user_dict)
+    
+    return result
 
 
 @router.get("/{user_id}", response_model=UserRead)
@@ -34,7 +51,7 @@ async def get_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).options(joinedload(User.department)).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -42,7 +59,18 @@ async def get_user(
     if not check_resource_access(user, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
     
-    return user
+    # Retornar com department_name
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "department_id": user.department_id,
+        "department_name": user.department.name if user.department else None,
+        "is_active": user.is_active,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at
+    }
 
 
 @router.post("", response_model=UserRead)
@@ -66,7 +94,22 @@ async def create_user(
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return new_user
+    
+    # Carregar department para retornar department_name
+    if new_user.department_id:
+        db.refresh(new_user, ["department"])
+    
+    return {
+        "id": new_user.id,
+        "email": new_user.email,
+        "full_name": new_user.full_name,
+        "role": new_user.role,
+        "department_id": new_user.department_id,
+        "department_name": new_user.department.name if new_user.department else None,
+        "is_active": new_user.is_active,
+        "created_at": new_user.created_at,
+        "updated_at": new_user.updated_at
+    }
 
 
 @router.put("/{user_id}", response_model=UserRead)
@@ -107,7 +150,22 @@ async def update_user(
     
     db.commit()
     db.refresh(user)
-    return user
+    
+    # Carregar department para retornar department_name
+    if user.department_id:
+        db.refresh(user, ["department"])
+    
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "department_id": user.department_id,
+        "department_name": user.department.name if user.department else None,
+        "is_active": user.is_active,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at
+    }
 
 
 @router.delete("/{user_id}")

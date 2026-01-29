@@ -29,6 +29,7 @@ class UserRead(BaseModel):
     full_name: str
     role: UserRole
     department_id: Optional[int] = None
+    department_name: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
