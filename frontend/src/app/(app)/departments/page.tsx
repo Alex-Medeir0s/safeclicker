@@ -196,6 +196,7 @@ export default function Departments() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">#{dept.id}</span>
                     <h3 className="text-2xl font-bold text-slate-900">{dept.name}</h3>
                     {editingDept?.id === dept.id && (
                       <span className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
