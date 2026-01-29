@@ -6,6 +6,10 @@ from app.core.access_control import apply_scope, check_resource_access
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from typing import List
+import csv
+import io
+from fastapi.responses import StreamingResponse
+from fastapi import UploadFile, File
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -123,4 +127,145 @@ async def delete_user(
     db.delete(user)
     db.commit()
     return {"message": "User deleted"}
+
+
+@router.get("/template/download")
+async def download_template():
+    """Baixar template CSV para importação de usuários"""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Escrever header
+    writer.writerow(["full_name", "email", "password", "role", "department_id"])
+    
+    # Escrever exemplos
+    writer.writerow(["João Silva", "joao@example.com", "senha123", "COLABORADOR", "1"])
+    writer.writerow(["Maria Santos", "maria@example.com", "senha456", "GESTOR", "2"])
+    writer.writerow(["Admin TI", "admin@example.com", "senha789", "TI", ""])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=usuarios_template.csv"}
+    )
+
+
+@router.post("/import/csv")
+async def import_users_csv(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Importar usuários via arquivo CSV"""
+    try:
+        contents = await file.read()
+        text = contents.decode('utf-8')
+        
+        reader = csv.DictReader(io.StringIO(text))
+        
+        created = 0
+        total = 0
+        errors = []
+        
+        for line_num, row in enumerate(reader, start=2):  # start=2 porque linha 1 é header
+            total += 1
+            
+            try:
+                # Validar campos obrigatórios
+                if not row.get("email") or not row.get("email").strip():
+                    errors.append({
+                        "line": line_num,
+                        "email": row.get("email", "?"),
+                        "error": "Email é obrigatório"
+                    })
+                    continue
+                
+                if not row.get("password") or not row.get("password").strip():
+                    errors.append({
+                        "line": line_num,
+                        "email": row.get("email"),
+                        "error": "Password é obrigatório"
+                    })
+                    continue
+                
+                if not row.get("role") or not row.get("role").strip():
+                    errors.append({
+                        "line": line_num,
+                        "email": row.get("email"),
+                        "error": "Role é obrigatório"
+                    })
+                    continue
+                
+                role = row.get("role").strip().upper()
+                if role not in ["COLABORADOR", "GESTOR", "TI"]:
+                    errors.append({
+                        "line": line_num,
+                        "email": row.get("email"),
+                        "error": f"Role inválida: {role}. Use COLABORADOR, GESTOR ou TI"
+                    })
+                    continue
+                
+                # Validar department_id para COLABORADOR e GESTOR
+                department_id = None
+                if role in ["COLABORADOR", "GESTOR"]:
+                    dept_str = row.get("department_id", "").strip()
+                    if not dept_str:
+                        errors.append({
+                            "line": line_num,
+                            "email": row.get("email"),
+                            "error": f"department_id é obrigatório para role {role}"
+                        })
+                        continue
+                    
+                    try:
+                        department_id = int(dept_str)
+                    except ValueError:
+                        errors.append({
+                            "line": line_num,
+                            "email": row.get("email"),
+                            "error": f"department_id inválido: {dept_str}"
+                        })
+                        continue
+                
+                # Verificar se email já existe
+                existing = db.query(User).filter(User.email == row.get("email").strip()).first()
+                if existing:
+                    errors.append({
+                        "line": line_num,
+                        "email": row.get("email"),
+                        "error": "Email já cadastrado"
+                    })
+                    continue
+                
+                # Criar novo usuário
+                new_user = User(
+                    full_name=row.get("full_name", "").strip() or row.get("email").strip().split("@")[0],
+                    email=row.get("email").strip(),
+                    hashed_password=get_password_hash(row.get("password")),
+                    role=UserRole[role],
+                    department_id=department_id
+                )
+                
+                db.add(new_user)
+                db.commit()
+                created += 1
+                
+            except Exception as e:
+                errors.append({
+                    "line": line_num,
+                    "email": row.get("email", "?"),
+                    "error": str(e)
+                })
+                continue
+        
+        return {
+            "total": total,
+            "created": created,
+            "errors": errors
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao processar arquivo: {str(e)}")
 

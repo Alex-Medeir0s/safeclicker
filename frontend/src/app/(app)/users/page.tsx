@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
+import { FiDownload, FiUpload } from "react-icons/fi";
 
 interface User {
   id: number;
@@ -10,6 +11,7 @@ interface User {
   email: string;
   role: string;
   department_id?: number | null;
+  department_name?: string | null;
   created_at: string;
 }
 
@@ -24,6 +26,10 @@ export default function Users() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importMessage, setImportMessage] = useState("");
+  const [importError, setImportError] = useState("");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     full_name: "",
@@ -125,6 +131,83 @@ export default function Users() {
     }
   };
 
+  const downloadTemplate = async () => {
+    try {
+      const response = await api.get("/users/template/download", {
+        responseType: "blob",
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "usuarios_template.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Erro ao baixar template:", error);
+      const errorMsg = error.response?.data?.detail || error.message || "Erro ao baixar template";
+      alert(`❌ Erro: ${errorMsg}`);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportLoading(true);
+    setImportMessage("");
+    setImportError("");
+
+    try {
+      const formDataFile = new FormData();
+      formDataFile.append("file", file);
+
+      const response = await api.post("/users/import/csv", formDataFile, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setImportMessage(
+        `✅ ${response.data.created} usuários criados com sucesso! (${response.data.total} total processados)`
+      );
+
+      if (response.data.errors && response.data.errors.length > 0) {
+        const errorSummary = response.data.errors
+          .slice(0, 5)
+          .map(
+            (err: any) =>
+              `Linha ${err.line}: ${err.email || "?"} - ${err.error}`
+          )
+          .join("\n");
+        setImportError(
+          `⚠️ ${response.data.errors.length} erros encontrados:\n${errorSummary}${
+            response.data.errors.length > 5
+              ? `\n... e mais ${response.data.errors.length - 5}`
+              : ""
+          }`
+        );
+      }
+
+      fetchUsers();
+      setTimeout(() => {
+        setShowImport(false);
+        setImportMessage("");
+        setImportError("");
+        if (event.target) event.target.value = "";
+      }, 3000);
+    } catch (error: any) {
+      console.error("Erro ao importar usuários:", error);
+      setImportError(
+        error.response?.data?.detail || "Erro ao processar o arquivo CSV"
+      );
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <div className="text-center">
@@ -143,17 +226,114 @@ export default function Users() {
           </h1>
           <p className="text-slate-600">Gerencie os usuários do sistema</p>
         </div>
-        <button
-          onClick={() => {
-            setEditingUser(null);
-            setFormData({ full_name: "", email: "", password: "", role: "COLABORADOR", department_id: null });
-            setShowForm(!showForm);
-          }}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
-        >
-          <span className="text-xl">+</span> Novo Usuário
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              setEditingUser(null);
+              setFormData({ full_name: "", email: "", password: "", role: "COLABORADOR", department_id: null });
+              setShowForm(!showForm);
+            }}
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
+          >
+            <span className="text-xl">+</span> Novo Usuário
+          </button>
+          <button
+            onClick={() => setShowImport(!showImport)}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
+          >
+            <FiUpload className="w-5 h-5" /> Importar CSV
+          </button>
+        </div>
       </div>
+
+      {showImport && (
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-8 rounded-2xl shadow-xl mb-6 border-2 border-green-200 animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-green-900">📥 Importar Usuários em Massa</h2>
+              <p className="text-green-700 text-sm mt-1">Importe múltiplos usuários via arquivo CSV</p>
+            </div>
+            <button
+              onClick={() => setShowImport(false)}
+              className="text-green-600 hover:text-green-900 text-2xl font-bold"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-white p-6 rounded-xl border border-green-200">
+              <h3 className="font-bold text-lg text-slate-900 mb-4">📋 Passo 1: Baixar Template</h3>
+              <p className="text-slate-600 mb-4">
+                Clique no botão abaixo para baixar um arquivo CSV com o modelo correto de formatação.
+              </p>
+              <button
+                onClick={downloadTemplate}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                <FiDownload className="w-5 h-5" /> Baixar Template (usuarios_template.csv)
+              </button>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-green-200">
+              <h3 className="font-bold text-lg text-slate-900 mb-4">✏️ Passo 2: Preencher Dados</h3>
+              <p className="text-slate-600 mb-3">
+                Abra o arquivo em Excel ou outro editor de planilhas e preencha com os dados dos usuários:
+              </p>
+              <div className="bg-slate-50 p-4 rounded-lg text-sm font-mono text-slate-700 space-y-1 mb-4">
+                <p>• <strong>full_name</strong>: Nome completo do usuário</p>
+                <p>• <strong>email</strong>: Email único (obrigatório)</p>
+                <p>• <strong>password</strong>: Senha para acesso (obrigatório)</p>
+                <p>• <strong>role</strong>: COLABORADOR, GESTOR ou TI (obrigatório)</p>
+                <p>• <strong>department_id</strong>: ID do departamento (obrigatório para COLABORADOR e GESTOR)</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-green-200">
+              <h3 className="font-bold text-lg text-slate-900 mb-4">📤 Passo 3: Fazer Upload</h3>
+              <p className="text-slate-600 mb-4">
+                Selecione o arquivo CSV preenchido para importar:
+              </p>
+              <label className="block">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  disabled={importLoading}
+                  className="block w-full text-sm text-slate-600
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-lg file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-gradient-to-r file:from-green-600 file:to-emerald-600
+                    file:text-white
+                    hover:file:from-green-700 hover:file:to-emerald-700
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    cursor-pointer"
+                />
+              </label>
+
+              {importLoading && (
+                <div className="mt-4 flex items-center gap-2 text-blue-600">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Processando arquivo...</span>
+                </div>
+              )}
+
+              {importMessage && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-300 rounded-lg text-green-700 whitespace-pre-line">
+                  {importMessage}
+                </div>
+              )}
+
+              {importError && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-300 rounded-lg text-red-700 whitespace-pre-line text-sm">
+                  {importError}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-white p-8 rounded-2xl shadow-xl mb-6 border border-slate-200 animate-fade-in">
@@ -276,6 +456,7 @@ export default function Users() {
                 <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">👤 Nome</th>
                 <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">📧 E-mail</th>
                 <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">🏷️ Perfil</th>
+                <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">🏢 Departamento</th>
                 <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">📅 Data de Criação</th>
                 <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">⚙️ Ações</th>
               </tr>
@@ -297,6 +478,9 @@ export default function Users() {
                     }`}>
                       {user.role}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {user.department_name || <span className="text-slate-400 italic">Sem departamento</span>}
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-500">
                     {new Date(user.created_at).toLocaleDateString("pt-BR")}
