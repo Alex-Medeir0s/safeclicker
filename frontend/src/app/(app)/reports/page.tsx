@@ -5,12 +5,30 @@ import { useRouter } from "next/navigation";
 import { api } from "@/services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { FiX } from "react-icons/fi";
+
+interface ClickDetail {
+  full_name: string;
+  email: string;
+  clicked_at: string | null;
+  ip_address: string | null;
+}
+
+interface CampaignClickDetails {
+  campaign_id: number;
+  campaign_name: string;
+  total_sends: number;
+  total_clicks: number;
+  clicks: ClickDetail[];
+}
 
 export default function Reports() {
   const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<CampaignClickDetails | null>(null);
+  const [loadingClicks, setLoadingClicks] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -29,6 +47,18 @@ export default function Reports() {
       console.error("Erro ao buscar relatório:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCampaignClicks = async (campaignId: number) => {
+    setLoadingClicks(true);
+    try {
+      const response = await api.get(`/metrics/campaigns/${campaignId}/clicks`);
+      setSelectedCampaign(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar cliques:", error);
+    } finally {
+      setLoadingClicks(false);
     }
   };
 
@@ -150,6 +180,79 @@ export default function Reports() {
         currentY = (doc as any).lastAutoTable?.finalY || currentY + 100;
       }
 
+      // Campanhas Recentes com Cliques
+      if (data.recent_campaigns && data.recent_campaigns.length > 0) {
+        if (currentY > 700) {
+          doc.addPage();
+          currentY = 40;
+        }
+
+        doc.setFontSize(12);
+        doc.text("Campanhas Recentes e Cliques", 40, currentY + 20);
+
+        // Para cada campanha, buscar os cliques
+        for (const campaign of data.recent_campaigns) {
+          if (currentY > 700) {
+            doc.addPage();
+            currentY = 40;
+          }
+
+          currentY += 30;
+          doc.setFontSize(11);
+          doc.setTextColor(30, 41, 59);
+          doc.text(`Campanha: ${campaign.name}`, 40, currentY);
+          doc.setTextColor(0, 0, 0);
+
+          // Buscar os cliques da campanha
+          try {
+            const clicksResponse = await api.get(`/metrics/campaigns/${campaign.id}/clicks`);
+            const clicksData = clicksResponse.data;
+
+            currentY += 15;
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text(
+              `Enviados: ${clicksData.total_sends} | Cliques: ${clicksData.total_clicks}`,
+              40,
+              currentY
+            );
+            doc.setTextColor(0, 0, 0);
+
+            if (clicksData.clicks && clicksData.clicks.length > 0) {
+              currentY += 15;
+
+              // Tabela com quem clicou
+              autoTable(doc, {
+                startY: currentY,
+                head: [["Usuário", "Email", "Data e Hora", "IP"]],
+                body: clicksData.clicks.map((click: any) => [
+                  click.full_name,
+                  click.email,
+                  click.clicked_at
+                    ? new Date(click.clicked_at).toLocaleString("pt-BR")
+                    : "-",
+                  click.ip_address || "-",
+                ]),
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+                margin: { left: 40, right: 40 },
+              });
+
+              currentY = (doc as any).lastAutoTable?.finalY || currentY + 50;
+            } else {
+              currentY += 10;
+              doc.setFontSize(9);
+              doc.setTextColor(150, 150, 150);
+              doc.text("Nenhum clique registrado nesta campanha", 40, currentY);
+              doc.setTextColor(0, 0, 0);
+              currentY += 10;
+            }
+          } catch (error) {
+            console.error(`Erro ao buscar cliques da campanha ${campaign.id}:`, error);
+          }
+        }
+      }
+
       // Colaboradores do Departamento
       if (data.collaborators && data.collaborators.length > 0) {
         if (currentY > 700) {
@@ -174,13 +277,10 @@ export default function Reports() {
           headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
           margin: { left: 40, right: 40 },
         });
-
-        currentY = (doc as any).lastAutoTable?.finalY || currentY + 100;
       }
 
       // Salvar o PDF
       doc.save(`relatorio-campanhas-${new Date().toISOString().split("T")[0]}.pdf`);
-      alert("PDF exportado com sucesso!");
     } catch (error) {
       console.error("Erro ao exportar PDF:", error);
       alert("Erro ao exportar PDF. Tente novamente.");
@@ -311,15 +411,107 @@ export default function Reports() {
         </div>
       )}
 
+      {/* Campanhas Recentes */}
+      {data.recent_campaigns && data.recent_campaigns.length > 0 && (
+        <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200 mt-8">
+          <h2 className="text-xl font-bold mb-4 text-slate-900">Campanhas Recentes</h2>
+          <div className="space-y-3">
+            {data.recent_campaigns.map((campaign: any) => (
+              <div
+                key={campaign.id}
+                onClick={() => fetchCampaignClicks(campaign.id)}
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-indigo-50 cursor-pointer transition-all duration-300 border border-slate-200 hover:border-indigo-300 hover:shadow-md"
+              >
+                <div>
+                  <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
+                  <p className="text-sm text-slate-600">
+                    {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString("pt-BR") : "Sem data"}
+                  </p>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
+                    {campaign.users} usuários
+                  </span>
+                  <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full font-medium">
+                    {campaign.clicks} cliques
+                  </span>
+                  <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full font-medium">
+                    {campaign.reports} reportes
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-6 text-center">
         <button
           onClick={handleExportPdf}
           disabled={exporting}
           className="bg-blue-900 hover:bg-blue-800 text-white px-6 py-2 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
         >
-          {exporting ? "Gerando PDF..." : "📥 Exportar PDF"}
+          {exporting ? "Gerando PDF..." : "Exportar PDF"}
         </button>
       </div>
+
+      {/* Modal de Cliques */}
+      {selectedCampaign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">{selectedCampaign.campaign_name}</h2>
+                <p className="text-indigo-100 text-sm">
+                  {selectedCampaign.total_clicks} de {selectedCampaign.total_sends} usuários clicaram
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedCampaign(null)}
+                className="text-white hover:text-indigo-100 text-xl font-bold transition-colors"
+              >
+                <FiX className="w-6 h-6" />
+              </button>
+            </div>
+
+            {loadingClicks ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-slate-600">Carregando dados...</p>
+                </div>
+              </div>
+            ) : selectedCampaign.clicks.length === 0 ? (
+              <div className="p-6 text-center text-slate-500">
+                Nenhum clique registrado nesta campanha
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-200">
+                {selectedCampaign.clicks.map((click, idx) => (
+                  <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-slate-900">{click.full_name}</p>
+                        <p className="text-sm text-slate-600">{click.email}</p>
+                        {click.ip_address && (
+                          <p className="text-xs text-slate-500 mt-1">IP: {click.ip_address}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        {click.clicked_at && (
+                          <p className="text-sm text-slate-600">
+                            {new Date(click.clicked_at).toLocaleString("pt-BR")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
