@@ -1,6 +1,6 @@
 # SafeClicker 🛡️
 
-Sistema de gerenciamento de campanhas de conscientização sobre segurança cibernética e phishing.
+Plataforma Web de Simulação e Treinamento Contínuo contra Phishing.
 
 ## 📋 Sobre o Projeto
 

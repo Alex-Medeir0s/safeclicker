@@ -1,5 +1,13 @@
 import "@/styles/globals.css";
 
+export const metadata = {
+  title: "SafeClicker",
+  description: "Plataforma Web de Simulação e Treinamento Contínuo contra Phishing",
+  icons: {
+    icon: "/logosite.png",
+  },
+};
+
 export default function RootLayout({
   children,
 }: {

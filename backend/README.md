@@ -1,6 +1,6 @@
 # SafeClicker API
 
-API Backend para o sistema de simulação de phishing e treinamento de segurança.
+API Backend da Plataforma Web de Simulação e Treinamento Contínuo contra Phishing.
 
 ## Setup Inicial
 
