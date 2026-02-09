@@ -30,6 +30,25 @@ export default function Reports() {
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignClickDetails | null>(null);
   const [loadingClicks, setLoadingClicks] = useState(false);
 
+  const formatStatus = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "active":
+        return "Ativa";
+      case "completed":
+        return "Concluída";
+      case "paused":
+        return "Pausada";
+      case "draft":
+        return "Rascunho";
+      case "scheduled":
+        return "Agendada";
+      case "canceled":
+        return "Cancelada";
+      default:
+        return status || "-";
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -87,6 +106,19 @@ export default function Reports() {
     });
   };
 
+  const departmentStats = data?.department_stats ?? [];
+  const totalEnviadosDepts = departmentStats.reduce(
+    (total: number, dept: any) => total + (dept.sends || 0),
+    0
+  );
+  const totalCliquesDepts = departmentStats.reduce(
+    (total: number, dept: any) => total + (dept.clicks || 0),
+    0
+  );
+  const deptClickRate = totalEnviadosDepts > 0 ? (totalCliquesDepts / totalEnviadosDepts) * 100 : 0;
+  const deptCampaigns = data?.summary?.department_campaigns ?? data?.summary?.total_campaigns ?? 0;
+  const totalEmails = data?.summary?.emails_received ?? totalEnviadosDepts;
+
   const handleExportPdf = async () => {
     if (!data || exporting) return;
     setExporting(true);
@@ -94,6 +126,40 @@ export default function Reports() {
     try {
       const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const companyName = localStorage.getItem("companyName") || "SafeClicker";
+      const generatedAt = new Date().toLocaleString("pt-BR");
+
+      const tableHeadStyles = { fillColor: [234, 234, 234], textColor: [17, 24, 39], fontStyle: "bold" };
+      const tableStyles = { fontSize: 10, textColor: [15, 23, 42], cellPadding: 6, halign: "center" as const };
+      const tableAltRowStyles = { fillColor: [247, 247, 247] };
+
+      const formatStatusForPdf = (status?: string) => {
+        return formatStatus(status);
+      };
+
+      const drawMetricCard = (
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        title: string,
+        value: string,
+        accent: [number, number, number]
+      ) => {
+        doc.setFillColor(245, 246, 248);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(x, y, w, h, 6, 6, "FD");
+        doc.setFillColor(...accent);
+        doc.rect(x, y, 6, h, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(100, 116, 139);
+        doc.text(title, x + 14, y + 18);
+        doc.setFontSize(20);
+        doc.setTextColor(15, 23, 42);
+        doc.text(value, x + 14, y + 40);
+      };
 
       // Logo e título
       const logoDataUrl = await fetchImageAsDataUrl("/safeclicker-logo-branca.png");
@@ -102,7 +168,7 @@ export default function Reports() {
 
       if (logoDataUrl) {
         const logoSize = await getImageSize(logoDataUrl);
-        const maxLogoHeight = 60;
+        const maxLogoHeight = 72;
         const scale = Math.min(1, maxLogoHeight / logoSize.height);
         const logoWidth = logoSize.width * scale;
         const logoHeight = logoSize.height * scale;
@@ -111,158 +177,115 @@ export default function Reports() {
         doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoWidth, logoHeight);
       }
 
-      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(21);
       doc.setTextColor(255, 255, 255);
       doc.text("Relatório de Campanhas", pageWidth - 40, 40, { align: "right" });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(companyName, pageWidth - 40, 56, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Gerado em: ${generatedAt}`, pageWidth - 40, 68, { align: "right" });
       doc.setTextColor(0, 0, 0);
 
-      // Resumo Geral
-      const deptCampaigns = data.summary.department_campaigns ?? data.summary.total_campaigns;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("Indicadores", 40, 96);
 
-      doc.setFontSize(12);
-      doc.text("Resumo Geral", 40, 90);
+      const cardsStartY = 110;
+      const cardGap = 10;
+      const cardWidth = (pageWidth - 80 - cardGap * 3) / 4;
+      const cardHeight = 58;
 
-      autoTable(doc, {
-        startY: 100,
-        head: [["Métrica", "Valor"]],
-        body: [
-          ["Total de Campanhas", String(deptCampaigns)],
-          ["Emails Enviados", String(totalEnviadosDepts)],
-          ["Total de Usuários", String(data.summary.total_users)],
-        ],
-        styles: { fontSize: 10 },
-        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
-        margin: { left: 40, right: 40 },
-      });
+      drawMetricCard(40, cardsStartY, cardWidth, cardHeight, "Campanhas", String(deptCampaigns), [59, 130, 246]);
+      drawMetricCard(
+        40 + (cardWidth + cardGap) * 1,
+        cardsStartY,
+        cardWidth,
+        cardHeight,
+        "Emails",
+        String(totalEmails),
+        [16, 185, 129]
+      );
+      drawMetricCard(
+        40 + (cardWidth + cardGap) * 2,
+        cardsStartY,
+        cardWidth,
+        cardHeight,
+        "Usuários",
+        String(data.summary.total_users),
+        [99, 102, 241]
+      );
+      drawMetricCard(
+        40 + (cardWidth + cardGap) * 3,
+        cardsStartY,
+        cardWidth,
+        cardHeight,
+        "Segurança",
+        `${(100 - deptClickRate).toFixed(1)}%`,
+        [34, 197, 94]
+      );
 
-      let currentY = (doc as any).lastAutoTable?.finalY || 140;
+      let currentY = cardsStartY + cardHeight + 18;
 
-      // Taxa de Segurança
-      doc.setFontSize(12);
-      doc.text("Taxa de Segurança", 40, currentY + 20);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(71, 85, 105);
+      const activeCampaignsSummary = data.summary.active_campaigns ?? deptCampaigns;
+      const summaryText = `No período analisado, ${activeCampaignsSummary} campanhas foram executadas, com ${totalEmails} emails enviados. A taxa de segurança observada foi de ${(100 - deptClickRate).toFixed(1)}%, indicando que ${deptClickRate.toFixed(1)}% dos usuários clicaram.`;
+      const summaryLines = doc.splitTextToSize(summaryText, pageWidth - 80);
+      doc.text(summaryLines, 40, currentY + 12);
+      currentY = currentY + 12 + summaryLines.length * 14 + 8;
+      doc.setTextColor(0, 0, 0);
 
-      autoTable(doc, {
-        startY: currentY + 30,
-        head: [["Indicador", "Valor"]],
-        body: [
-          ["Colaboradores Seguros", `${(100 - deptClickRate).toFixed(1)}%`],
-          ["Taxa de Cliques", `${deptClickRate.toFixed(1)}%`],
-        ],
-        styles: { fontSize: 10 },
-        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
-        margin: { left: 40, right: 40 },
-      });
-
-      currentY = (doc as any).lastAutoTable?.finalY || currentY + 90;
-
-      // Estatísticas por Departamento
-      if (data.department_stats && data.department_stats.length > 0) {
-        doc.setFontSize(12);
-        doc.text("Estatísticas por Departamento", 40, currentY + 20);
-
-        autoTable(doc, {
-          startY: currentY + 30,
-          head: [["Departamento", "Enviados", "Cliques", "Taxa %"]],
-          body: data.department_stats.map((dept: any) => [
-            dept.department,
-            String(dept.sends),
-            String(dept.clicks),
-            `${dept.rate.toFixed(1)}%`,
-          ]),
-          styles: { fontSize: 9 },
-          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
-          margin: { left: 40, right: 40 },
-        });
-
-        currentY = (doc as any).lastAutoTable?.finalY || currentY + 100;
-      }
-
-      // Campanhas Recentes com Cliques
       if (data.recent_campaigns && data.recent_campaigns.length > 0) {
-        if (currentY > 700) {
-          doc.addPage();
-          currentY = 40;
-        }
-
-        doc.setFontSize(12);
-        doc.text("Campanhas Recentes e Cliques", 40, currentY + 20);
-
-        // Para cada campanha, buscar os cliques
-        for (const campaign of data.recent_campaigns) {
-          if (currentY > 700) {
-            doc.addPage();
-            currentY = 40;
-          }
-
-          currentY += 30;
-          doc.setFontSize(11);
-          doc.setTextColor(30, 41, 59);
-          doc.text(`Campanha: ${campaign.name}`, 40, currentY);
-          doc.setTextColor(0, 0, 0);
-
-          // Buscar os cliques da campanha
-          try {
-            const clicksResponse = await api.get(`/metrics/campaigns/${campaign.id}/clicks`);
-            const clicksData = clicksResponse.data;
-
-            currentY += 15;
-            doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
-            doc.text(
-              `Enviados: ${clicksData.total_sends} | Cliques: ${clicksData.total_clicks}`,
-              40,
-              currentY
-            );
-            doc.setTextColor(0, 0, 0);
-
-            if (clicksData.clicks && clicksData.clicks.length > 0) {
-              currentY += 15;
-
-              // Tabela com quem clicou
-              autoTable(doc, {
-                startY: currentY,
-                head: [["Usuário", "Email", "Data e Hora", "IP"]],
-                body: clicksData.clicks.map((click: any) => [
-                  click.full_name,
-                  click.email,
-                  click.clicked_at
-                    ? new Date(click.clicked_at).toLocaleString("pt-BR")
-                    : "-",
-                  click.ip_address || "-",
-                ]),
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
-                margin: { left: 40, right: 40 },
-              });
-
-              currentY = (doc as any).lastAutoTable?.finalY || currentY + 50;
-            } else {
-              currentY += 10;
-              doc.setFontSize(9);
-              doc.setTextColor(150, 150, 150);
-              doc.text("Nenhum clique registrado nesta campanha", 40, currentY);
-              doc.setTextColor(0, 0, 0);
-              currentY += 10;
-            }
-          } catch (error) {
-            console.error(`Erro ao buscar cliques da campanha ${campaign.id}:`, error);
-          }
-        }
-      }
-
-      // Colaboradores do Departamento
-      if (data.collaborators && data.collaborators.length > 0) {
-        if (currentY > 700) {
-          doc.addPage();
-          currentY = 40;
-        }
-
-        doc.setFontSize(12);
-        doc.text("Colaboradores do Departamento", 40, currentY + 20);
+        doc.setFontSize(14);
+        doc.text("Campanhas Recentes", 40, currentY + 22);
 
         autoTable(doc, {
-          startY: currentY + 30,
-          head: [["Colaborador", "Email", "Enviados", "Cliques", "Campanhas"]],
+          startY: currentY + 36,
+          head: [["Campanha", "Status", "Emails Enviados", "Cliques", "Início"]],
+          body: data.recent_campaigns.map((campaign: any) => [
+            campaign.name,
+            formatStatusForPdf(campaign.status),
+            String(campaign.users),
+            String(campaign.clicks),
+            campaign.start_date ? new Date(campaign.start_date).toLocaleDateString("pt-BR") : "-",
+          ]),
+          styles: tableStyles,
+          headStyles: tableHeadStyles,
+          alternateRowStyles: tableAltRowStyles,
+          columnStyles: {
+            0: { halign: "left" },
+            4: { halign: "right" },
+          },
+          didParseCell: (hookData) => {
+            if (hookData.section === "body" && hookData.column.index === 1) {
+              const raw = String(hookData.cell.raw || "").trim().toLowerCase();
+              hookData.cell.styles.fontStyle = "bold";
+              if (raw.includes("rascunho")) {
+                hookData.cell.styles.textColor = [107, 114, 128];
+              } else if (raw.includes("enviada") || raw.includes("agendada")) {
+                hookData.cell.styles.textColor = [59, 130, 246];
+              } else if (raw.includes("ativa")) {
+                hookData.cell.styles.textColor = [34, 197, 94];
+              } else if (raw.includes("concluída") || raw.includes("concluida")) {
+                hookData.cell.styles.textColor = [37, 99, 235];
+              }
+            }
+          },
+        });
+        currentY = (doc as any).lastAutoTable?.finalY || currentY + 110;
+      }
+
+      if (data.collaborators && data.collaborators.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Colaboradores do Departamento", 40, currentY + 22);
+
+        autoTable(doc, {
+          startY: currentY + 36,
+          head: [["Colaborador", "Email", "Envios", "Cliques", "Campanhas"]],
           body: data.collaborators.map((c: any) => [
             c.full_name,
             c.email,
@@ -270,14 +293,102 @@ export default function Reports() {
             String(c.clicks),
             c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-",
           ]),
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
-          margin: { left: 40, right: 40 },
+          styles: tableStyles,
+          headStyles: tableHeadStyles,
+          alternateRowStyles: tableAltRowStyles,
+          columnStyles: {
+            0: { halign: "left" },
+            1: { halign: "left" },
+          },
         });
+        currentY = (doc as any).lastAutoTable?.finalY || currentY + 110;
       }
 
-      // Salvar o PDF
-      doc.save(`relatorio-campanhas-${new Date().toISOString().split("T")[0]}.pdf`);
+      // Campanhas ativas e cliques
+      const campaignsResponse = await api.get("/campaigns/");
+      const activeCampaigns = (campaignsResponse.data || []).filter(
+        (campaign: any) => campaign.status === "active"
+      );
+
+      if (activeCampaigns.length > 0) {
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(1);
+        doc.line(40, currentY + 10, pageWidth - 40, currentY + 10);
+        doc.setFontSize(12);
+        doc.setTextColor(100, 116, 139);
+        doc.text("Detalhamento", 40, currentY + 28);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(14);
+        doc.text("Campanhas Ativas e Cliques", 40, currentY + 46);
+        currentY = currentY + 54;
+
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(1);
+        doc.line(40, currentY, pageWidth - 40, currentY);
+        currentY += 12;
+
+        for (const campaign of activeCampaigns) {
+          if (currentY > 720) {
+            doc.addPage();
+            currentY = 40;
+          }
+
+          doc.setFontSize(11);
+          doc.text(`${campaign.name} (ID: ${campaign.id})`, 40, currentY);
+          currentY += 10;
+
+          const clicksResponse = await api.get(`/metrics/campaigns/${campaign.id}/clicks`);
+          const clicks = clicksResponse.data?.clicks || [];
+
+          autoTable(doc, {
+            startY: currentY + 12,
+            head: [["Nome", "Email", "IP", "Data do Clique"]],
+            body:
+              clicks.length > 0
+                ? clicks.map((click: any) => [
+                    click.full_name,
+                    click.email,
+                    click.ip_address || "-",
+                    click.clicked_at
+                      ? new Date(click.clicked_at).toLocaleString("pt-BR")
+                      : "-",
+                  ])
+                : [["Nenhum clique registrado", "-", "-", "-"]],
+            styles: { ...tableStyles, fontSize: 9 },
+            headStyles: tableHeadStyles,
+            alternateRowStyles: tableAltRowStyles,
+            columnStyles: {
+              0: { halign: "left" },
+              1: { halign: "left" },
+            },
+          });
+
+          currentY = (doc as any).lastAutoTable?.finalY || currentY + 56;
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          doc.text("Dados para fins de auditoria", 40, currentY + 10);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(0, 0, 0);
+          currentY += 18;
+        }
+      }
+
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let page = 1; page <= totalPages; page += 1) {
+        doc.setPage(page);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text(
+          `Página ${page} de ${totalPages} | Gerado automaticamente pelo sistema ${companyName}`,
+          pageWidth / 2,
+          pageHeight - 16,
+          { align: "center" }
+        );
+      }
+
+      doc.save("relatorio-campanhas.pdf");
     } catch (error) {
       console.error("Erro ao exportar PDF:", error);
       alert("Erro ao exportar PDF. Tente novamente.");
@@ -293,20 +404,6 @@ export default function Reports() {
   if (!data) {
     return <div className="text-center py-12">Erro ao carregar dados</div>;
   }
-
-  // Calcular totais a partir da tabela de departamentos
-  let totalEnviadosDepts = 0;
-  let totalCliquesDepts = 0;
-  
-  if (data.department_stats && data.department_stats.length > 0) {
-    data.department_stats.forEach((dept: any) => {
-      totalEnviadosDepts += dept.sends || 0;
-      totalCliquesDepts += dept.clicks || 0;
-    });
-  }
-
-  const deptClickRate = totalEnviadosDepts > 0 ? (totalCliquesDepts / totalEnviadosDepts) * 100 : 0;
-  const deptCampaigns = data.summary.department_campaigns ?? data.summary.total_campaigns;
 
   return (
     <>
@@ -325,7 +422,7 @@ export default function Reports() {
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
               <span>Emails Enviados</span>
-              <span className="font-bold">{data.summary.emails_received}</span>
+              <span className="font-bold">{totalEmails}</span>
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
               <span>Total de Usuários</span>
