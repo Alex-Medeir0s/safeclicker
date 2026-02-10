@@ -2,13 +2,22 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { FiAlertTriangle, FiArrowRight } from 'react-icons/fi';
+import { FiAlertTriangle, FiArrowRight, FiCheckCircle, FiInfo } from 'react-icons/fi';
 
 export default function ClickAlert() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(30);
   const [redirect, setRedirect] = useState(false);
+  const eventId = token || 'Token não disponível';
+  const eventTimestamp = new Date().toLocaleString('pt-BR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,75 +41,92 @@ export default function ClickAlert() {
   }, [redirect, token]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center px-6 py-12">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white border-4 border-red-600 rounded-2xl shadow-2xl p-12 space-y-6 text-center">
-          
-          {/* Ícone de alerta */}
-          <div className="flex justify-center">
-            <div className="bg-red-100 p-6 rounded-full">
-              <FiAlertTriangle className="w-16 h-16 text-red-600" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-6 py-12">
+      <div className="max-w-2xl mx-auto w-full">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-10 space-y-6">
+          {/* Identidade */}
+          <div className="text-center">
+            <p className="text-sm text-slate-500">
+              SafeClicker — Plataforma Web de Simulação e Treinamento Contínuo contra Phishing
+            </p>
+          </div>
+
+          {/* Bloco 1 — Confirmação */}
+          <div className="text-center space-y-2">
+            <div className="flex items-center justify-center gap-3">
+              <FiAlertTriangle className="w-10 h-10 text-red-600" />
+              <span className="text-slate-700 font-semibold tracking-wide text-sm uppercase">
+                Notificação de Segurança
+              </span>
             </div>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Evento identificado: interação com e-mail de phishing (simulação)
+            </h1>
           </div>
 
-          {/* Título */}
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-red-900">⚠️ ALERTA!</h1>
-            <h2 className="text-2xl font-semibold text-red-800">Este é um email de Phishing</h2>
-          </div>
-
-          {/* Mensagem */}
-          <div className="bg-red-50 border border-red-300 rounded-xl p-6 space-y-3">
-            <p className="text-red-900 font-semibold text-lg">
-              Você clicou em um link de simulação de ataque de phishing!
+          {/* Bloco 2 — Contexto educativo */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-2">
+            <p className="text-slate-700">
+              Este evento faz parte de um programa corporativo de simulação e conscientização em
+              segurança da informação.
             </p>
-            <p className="text-red-800 leading-relaxed">
-              Este e-mail faz parte de um <strong>programa de simulação e treinamento de segurança</strong>. 
-              A ação que você realizou é uma excelente oportunidade de aprendizado.
-            </p>
-            <p className="text-red-800 leading-relaxed">
-              <strong>Não se preocupe!</strong> Isso não gera penalidades. É um exercício educativo para 
-              fortalecer sua consciência sobre ataques de phishing.
+            <p className="text-slate-700">
+              Nenhuma penalidade foi aplicada. O objetivo deste processo é educativo e preventivo,
+              visando a redução de riscos de segurança.
             </p>
           </div>
 
-          {/* O que você pode aprender */}
-          <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-6 space-y-3">
-            <p className="font-semibold text-yellow-900">💡 Lições importantes:</p>
-            <ul className="text-sm text-yellow-800 space-y-2 text-left">
-              <li>✓ Sempre verifique o remetente antes de clicar em links</li>
-              <li>✓ Desconfie de mensagens urgentes ou ameaçadoras</li>
-              <li>✓ Passe o mouse sobre links para confirmar o destino real</li>
-              <li>✓ Quando em dúvida, contate o suporte de TI diretamente</li>
+          {/* Bloco 3 — Lições aprendidas */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
+            <p className="font-semibold text-slate-800 flex items-center gap-2">
+              <FiInfo className="w-4 h-4 text-slate-500" /> Boas práticas de segurança da informação
+            </p>
+            <ul className="text-sm text-slate-700 space-y-2">
+              <li>• Verifique o remetente antes de interagir com links ou anexos</li>
+              <li>• Desconfie de mensagens com tom urgente, ameaçador ou incomum</li>
+              <li>• Passe o cursor sobre links para validar o destino real</li>
+              <li>• Em caso de dúvida, entre em contato com o time de TI ou Segurança da Informação</li>
             </ul>
           </div>
 
-          {/* Contagem regressiva */}
-          <div className="space-y-2">
-            <p className="text-slate-700 font-semibold">
-              Redirecionando para treinamento em <span className="text-red-600 text-2xl font-bold">{countdown}</span>s...
+          {/* Bloco 4 — Próxima ação */}
+          <div className="space-y-3 text-center">
+            <p className="text-slate-600 text-sm">
+              Você será direcionado automaticamente para um treinamento rápido de conscientização
+              em segurança em 30 segundos.
             </p>
             <div className="w-full bg-slate-200 rounded-full h-2">
               <div
-                className="bg-red-600 h-2 rounded-full transition-all duration-1000"
-                style={{ width: `${((10 - countdown) / 10) * 100}%` }}
+                className="bg-blue-600 h-2 rounded-full transition-all duration-1000"
+                style={{ width: `${((30 - countdown) / 30) * 100}%` }}
               ></div>
             </div>
           </div>
 
-          {/* Botão manual */}
-          <a
-            href={token ? `/phishing-training?token=${token}` : '/phishing-training'}
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all duration-300 hover:shadow-lg"
-          >
-            <span>Ir para Treinamento Agora</span>
-            <FiArrowRight className="w-5 h-5" />
-          </a>
+          {/* CTA */}
+          <div className="text-center">
+            <a
+              href={token ? `/phishing-training?token=${token}` : '/phishing-training'}
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-300 hover:shadow-lg"
+            >
+              <FiCheckCircle className="w-5 h-5" />
+              <span>Acessar treinamento de conscientização</span>
+              <FiArrowRight className="w-5 h-5" />
+            </a>
+          </div>
 
-          {/* Rodapé */}
-          <p className="text-xs text-slate-500 border-t border-slate-200 pt-4">
-            Este exercício de simulação é parte do programa de segurança da informação.
-          </p>
+          {/* Microcopy de confiança */}
+          <div className="text-xs text-slate-500 border-t border-slate-200 pt-4 space-y-2">
+            <p>Nenhuma informação pessoal sensível foi coletada.</p>
+            <p>
+              Este evento é registrado exclusivamente para fins educativos, estatísticos e de melhoria
+              contínua dos controles de segurança.
+            </p>
+            <p>Classificação: Uso interno — Programa corporativo de segurança da informação.</p>
+            <p>Este registro atende aos requisitos de conscientização previstos em políticas internas de segurança da informação.</p>
+            <p>Identificador do evento: {eventId}</p>
+            <p>Data e hora: {eventTimestamp} (UTC-3)</p>
+          </div>
         </div>
       </div>
     </div>
