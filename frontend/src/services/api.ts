@@ -1,9 +1,11 @@
 import axios from "axios";
 
+const API_BASE_URL = "http://127.0.0.1:8000";
+
 export const api = axios.create({
   // Use 127.0.0.1 to evitar resolução IPv6 (::1) que causa Network Error quando o backend
   // está escutando apenas em IPv4 (127.0.0.1).
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: API_BASE_URL,
   timeout: 30000, // 30 segundos
   headers: {
     "Content-Type": "application/json",
@@ -42,7 +44,7 @@ api.interceptors.response.use(
     if (error.code === "ECONNABORTED") {
       console.error("⏱️ Request timeout - servidor não respondeu em 30 segundos. Verifique se o backend está rodando com: uvicorn app.main:app --reload");
     } else if (error.code === "ERR_NETWORK") {
-      console.error("🌐 Network error - verifique se o backend está rodando em http://localhost:8000");
+      console.error(`🌐 Network error - verifique se o backend está rodando em ${API_BASE_URL}`);
     } else if (error.response?.status === 401) {
       console.error("🔒 Unauthorized - redirecionando para login");
       localStorage.removeItem("token");

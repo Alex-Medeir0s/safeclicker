@@ -125,9 +125,10 @@ export default function Users() {
     try {
       await api.delete(`/users/${userId}`);
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao excluir usuário:", error);
-      alert("Erro ao excluir usuário");
+      const errorMsg = error.response?.data?.detail || error.message || "Erro ao excluir usuário";
+      alert(`❌ Erro ao excluir usuário: ${errorMsg}`);
     }
   };
 

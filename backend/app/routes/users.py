@@ -4,12 +4,16 @@ from app.core.database import get_db
 from app.core.security import get_current_user, get_password_hash
 from app.core.access_control import apply_scope, check_resource_access
 from app.models.user import User, UserRole
+from app.models.campaign import Campaign
+from app.models.campaign_send import CampaignSend
+from app.models.click_event import ClickEvent
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from typing import List
 import csv
 import io
 from fastapi.responses import StreamingResponse
 from fastapi import UploadFile, File
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -181,9 +185,41 @@ async def delete_user(
     # Verificar acesso
     if not check_resource_access(user, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
+
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Não é permitido excluir o próprio usuário"
+        )
+
+    campaigns_count = db.query(Campaign).filter(Campaign.created_by == user.id).count()
+    sends_count = db.query(CampaignSend).filter(CampaignSend.user_id == user.id).count()
+
+    if campaigns_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Usuário possui vínculos e não pode ser excluído. "
+                f"Campanhas criadas: {campaigns_count}."
+            )
+        )
     
-    db.delete(user)
-    db.commit()
+    try:
+        if sends_count > 0:
+            send_ids = [send_id for (send_id,) in db.query(CampaignSend.id).filter(CampaignSend.user_id == user.id).all()]
+            if send_ids:
+                db.query(ClickEvent).filter(ClickEvent.campaign_send_id.in_(send_ids)).delete(synchronize_session=False)
+            db.query(CampaignSend).filter(CampaignSend.user_id == user.id).delete(synchronize_session=False)
+
+        db.delete(user)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Usuário possui vínculos em outros registros e não pode ser excluído"
+        )
+
     return {"message": "User deleted"}
 
 
