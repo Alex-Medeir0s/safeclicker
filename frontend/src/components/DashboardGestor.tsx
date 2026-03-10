@@ -56,6 +56,14 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
     (metrics.department_stats && metrics.department_stats[0]?.rate) ??
     metrics.summary.click_rate;
 
+  const getClickRateColor = (rate: number) => {
+    const normalizedRate = Math.max(0, Math.min(100, rate));
+
+    if (normalizedRate <= 33) return "text-green-600";
+    if (normalizedRate <= 66) return "text-yellow-500";
+    return "text-red-600";
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -87,7 +95,7 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
           title="Taxa de Cliques"
           value={`${deptClickRate.toFixed(1)}%`}
           icon={<FiZap className="w-6 h-6" />}
-          color="yellow"
+          color={getClickRateColor(deptClickRate)}
         />
       </div>
 

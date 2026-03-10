@@ -36,6 +36,14 @@ interface DashboardTIProps {
 }
 
 export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
+  const getClickRateColor = (rate: number) => {
+    const normalizedRate = Math.max(0, Math.min(100, rate));
+
+    if (normalizedRate <= 33) return "text-green-600";
+    if (normalizedRate <= 66) return "text-yellow-500";
+    return "text-red-600";
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -67,7 +75,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
           title="Taxa de Cliques"
           value={`${metrics.summary.click_rate.toFixed(1)}%`}
           icon={<FiZap className="w-6 h-6" />}
-          color="yellow"
+          color={getClickRateColor(metrics.summary.click_rate)}
         />
       </div>
 
