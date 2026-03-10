@@ -586,11 +586,7 @@ export default function Users() {
                   <td className="px-6 py-4 text-sm font-medium text-slate-900">{user.full_name}</td>
                   <td className="px-6 py-4 text-sm text-slate-600">{user.email}</td>
                   <td className="px-6 py-4 text-sm">
-                    <span className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm ${
-                      user.role === "TI" ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white" :
-                      user.role === "GESTOR" ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white" :
-                      "bg-gradient-to-r from-slate-400 to-slate-500 text-white"
-                    }`}>
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
                       {user.role}
                     </span>
                   </td>
@@ -604,13 +600,13 @@ export default function Users() {
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleEdit(user)}
-                        className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300"
                       >
                         ✏️ Editar
                       </button>
                       <button
                         onClick={() => handleDelete(user.id)}
-                        className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300"
                       >
                         🗑️ Excluir
                       </button>
