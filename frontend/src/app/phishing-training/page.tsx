@@ -278,7 +278,7 @@ function PhishingTrainingContent() {
               href="/dashboard"
               className="inline-flex items-center justify-center px-8 py-3 bg-white text-indigo-700 font-semibold rounded-xl hover:bg-indigo-50 transition shadow-lg"
             >
-              Voltar ao painel
+              Ciente
             </a>
           </div>
         </section>
