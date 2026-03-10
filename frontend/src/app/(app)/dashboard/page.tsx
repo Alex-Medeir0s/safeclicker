@@ -33,6 +33,14 @@ interface DashboardMetrics {
     reports: number;
     start_date: string | null;
   }>;
+  sent_campaigns?: Array<{
+    campaign_id: number;
+    campaign_name: string;
+    sends: number;
+    clicks: number;
+    click_rate: number;
+    last_sent_at: string | null;
+  }>;
 }
 
 interface ClickDetail {

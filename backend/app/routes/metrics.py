@@ -56,6 +56,15 @@ class RecentCampaign(BaseModel):
     start_date: Optional[datetime]
 
 
+class SentCampaign(BaseModel):
+    campaign_id: int
+    campaign_name: str
+    sends: int
+    clicks: int
+    click_rate: float
+    last_sent_at: Optional[datetime]
+
+
 class MetricsSummary(BaseModel):
     total_campaigns: int
     active_campaigns: int
@@ -71,6 +80,7 @@ class DashboardMetrics(BaseModel):
     summary: MetricsSummary
     department_stats: List[DepartmentStat]
     recent_campaigns: List[RecentCampaign]
+    sent_campaigns: List[SentCampaign] = []
     collaborators: List[CollaboratorStat] = []
 
 
@@ -247,6 +257,43 @@ async def get_dashboard_metrics(
                 )
             )
 
+    sent_campaigns: List[SentCampaign] = []
+    if current_user.role == UserRole.GESTOR and current_user.department_id:
+        sent_campaigns_raw = (
+            db.query(
+                Campaign.id.label("campaign_id"),
+                Campaign.name.label("campaign_name"),
+                func.count(func.distinct(CampaignSend.id)).label("sends"),
+                func.count(
+                    func.distinct(
+                        case((ClickEvent.id.isnot(None), CampaignSend.id), else_=None)
+                    )
+                ).label("clicks"),
+                func.max(CampaignSend.sent_at).label("last_sent_at"),
+            )
+            .join(CampaignSend, Campaign.id == CampaignSend.campaign_id)
+            .join(User, CampaignSend.user_id == User.id)
+            .outerjoin(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id)
+            .filter(User.department_id == current_user.department_id)
+            .group_by(Campaign.id, Campaign.name)
+            .order_by(func.max(CampaignSend.sent_at).desc())
+            .all()
+        )
+
+        for row in sent_campaigns_raw:
+            sends = row.sends or 0
+            clicks = row.clicks or 0
+            sent_campaigns.append(
+                SentCampaign(
+                    campaign_id=row.campaign_id,
+                    campaign_name=row.campaign_name,
+                    sends=sends,
+                    clicks=clicks,
+                    click_rate=(clicks / sends * 100) if sends > 0 else 0,
+                    last_sent_at=row.last_sent_at,
+                )
+            )
+
     # Campanhas recentes (ordenadas por início ou criação) com scope
     recent_campaigns_query = apply_scope(db.query(Campaign), Campaign, current_user)
     recent_campaigns_raw = (
@@ -320,6 +367,7 @@ async def get_dashboard_metrics(
         ),
         department_stats=department_stats,
         recent_campaigns=recent_campaigns,
+        sent_campaigns=sent_campaigns,
         collaborators=collaborator_stats
     )
 

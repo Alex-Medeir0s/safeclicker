@@ -279,26 +279,26 @@ export default function Reports() {
         currentY = (doc as any).lastAutoTable?.finalY || currentY + 110;
       }
 
-      if (data.collaborators && data.collaborators.length > 0) {
+      if (data.sent_campaigns && data.sent_campaigns.length > 0) {
         doc.setFontSize(14);
-        doc.text("Colaboradores do Departamento", 40, currentY + 22);
+        doc.text("Campanhas Enviadas para o Departamento", 40, currentY + 22);
 
         autoTable(doc, {
           startY: currentY + 36,
-          head: [["Colaborador", "Email", "Envios", "Cliques", "Campanhas"]],
-          body: data.collaborators.map((c: any) => [
-            c.full_name,
-            c.email,
-            String(c.sends),
-            String(c.clicks),
-            c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-",
+          head: [["Campanha", "Envios", "Cliques", "Taxa", "Último envio"]],
+          body: data.sent_campaigns.map((campaign: any) => [
+            campaign.campaign_name,
+            String(campaign.sends),
+            String(campaign.clicks),
+            `${Number(campaign.click_rate || 0).toFixed(1)}%`,
+            campaign.last_sent_at ? new Date(campaign.last_sent_at).toLocaleDateString("pt-BR") : "-",
           ]),
           styles: tableStyles,
           headStyles: tableHeadStyles,
           alternateRowStyles: tableAltRowStyles,
           columnStyles: {
             0: { halign: "left" },
-            1: { halign: "left" },
+            4: { halign: "right" },
           },
         });
         currentY = (doc as any).lastAutoTable?.finalY || currentY + 110;
@@ -474,38 +474,48 @@ export default function Reports() {
         </table>
       </div>
 
-      {data.collaborators && data.collaborators.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow mt-8">
-          <h2 className="text-xl font-bold mb-4">Colaboradores do Departamento</h2>
+      <div className="bg-white p-6 rounded-lg shadow mt-8">
+        <h2 className="text-xl font-bold mb-4">Campanhas Enviadas para o Departamento</h2>
+
+        {data.sent_campaigns && data.sent_campaigns.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-100">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-semibold">Colaborador</th>
-                  <th className="px-4 py-2 text-center text-sm font-semibold">Emails Enviados</th>
+                  <th className="px-4 py-2 text-left text-sm font-semibold">Campanha</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Envios</th>
                   <th className="px-4 py-2 text-center text-sm font-semibold">Cliques</th>
-                  <th className="px-4 py-2 text-center text-sm font-semibold">Campanhas Enviadas</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Taxa</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Último envio</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {data.collaborators.map((c: any, idx: number) => (
-                  <tr key={`${c.email}-${idx}`} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm text-slate-900">
-                      <div className="font-semibold">{c.full_name}</div>
-                      <div className="text-xs text-slate-500">{c.email}</div>
+                {data.sent_campaigns.map((campaign: any) => (
+                  <tr
+                    key={campaign.campaign_id}
+                    onClick={() => fetchCampaignClicks(campaign.campaign_id)}
+                    className="hover:bg-indigo-50 cursor-pointer transition-all duration-300"
+                  >
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{campaign.campaign_name}</td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.sends}</td>
+                    <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.clicks}</td>
+                    <td className="px-4 py-3 text-center text-sm font-semibold text-slate-700">
+                      {Number(campaign.click_rate || 0).toFixed(1)}%
                     </td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-700">{c.sends}</td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-700">{c.clicks}</td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-700">
-                      {c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-"}
+                    <td className="px-4 py-3 text-center text-sm text-slate-600">
+                      {campaign.last_sent_at
+                        ? new Date(campaign.last_sent_at).toLocaleDateString("pt-BR")
+                        : "-"}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-slate-500">Nenhuma campanha enviada para o departamento.</p>
+        )}
+      </div>
 
       {/* Campanhas Recentes */}
       {data.recent_campaigns && data.recent_campaigns.length > 0 && (

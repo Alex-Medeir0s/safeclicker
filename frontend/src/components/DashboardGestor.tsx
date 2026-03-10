@@ -29,6 +29,14 @@ interface DashboardMetrics {
     reports: number;
     start_date: string | null;
   }>;
+  sent_campaigns?: Array<{
+    campaign_id: number;
+    campaign_name: string;
+    sends: number;
+    clicks: number;
+    click_rate: number;
+    last_sent_at: string | null;
+  }>;
   collaborators?: Array<{
     full_name: string;
     email: string;
@@ -112,65 +120,46 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
         </div>
       )}
 
-      {metrics.collaborators && metrics.collaborators.length > 0 && (
-        <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
-          <h2 className="text-xl font-bold mb-4 text-slate-900">Colaboradores do Departamento</h2>
+      <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
+        <h2 className="text-xl font-bold mb-4 text-slate-900">Campanhas Enviadas para o Departamento</h2>
+
+        {metrics.sent_campaigns && metrics.sent_campaigns.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-left text-slate-700 border-b border-slate-300">
-                  <th className="pb-3 px-4">Colaborador</th>
-                  <th className="pb-3 px-4 text-center">Emails Enviados</th>
+                  <th className="pb-3 px-4">Campanha</th>
+                  <th className="pb-3 px-4 text-center">Envios</th>
                   <th className="pb-3 px-4 text-center">Cliques</th>
-                  <th className="pb-3 px-4 text-center">Campanhas Enviadas</th>
+                  <th className="pb-3 px-4 text-center">Taxa</th>
+                  <th className="pb-3 px-4 text-center">Último envio</th>
                 </tr>
               </thead>
               <tbody>
-                {metrics.collaborators.map((c, idx) => (
-                  <tr key={`${c.email}-${idx}`} className="border-b border-slate-200 hover:bg-slate-50">
-                    <td className="py-3 px-4 text-slate-900">
-                      <div className="font-semibold">{c.full_name}</div>
-                      <div className="text-xs text-slate-500">{c.email}</div>
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-700">{c.sends}</td>
-                    <td className="py-3 px-4 text-center text-slate-700">{c.clicks}</td>
+                {metrics.sent_campaigns.map((campaign) => (
+                  <tr
+                    key={campaign.campaign_id}
+                    onClick={() => onCampaignClick(campaign.campaign_id)}
+                    className="border-b border-slate-200 hover:bg-slate-50 cursor-pointer transition"
+                  >
+                    <td className="py-3 px-4 text-slate-900 font-semibold">{campaign.campaign_name}</td>
+                    <td className="py-3 px-4 text-center text-slate-700">{campaign.sends}</td>
+                    <td className="py-3 px-4 text-center text-slate-700">{campaign.clicks}</td>
+                    <td className="py-3 px-4 text-center text-slate-700">{campaign.click_rate.toFixed(1)}%</td>
                     <td className="py-3 px-4 text-center text-slate-700">
-                      {c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-"}
+                      {campaign.last_sent_at
+                        ? new Date(campaign.last_sent_at).toLocaleDateString("pt-BR")
+                        : "-"}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {/* Campanhas recentes do departamento */}
-      {metrics.recent_campaigns && metrics.recent_campaigns.length > 0 && (
-        <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
-          <h2 className="text-xl font-bold mb-4 text-slate-900">Campanhas do Departamento</h2>
-          <div className="space-y-3">
-            {metrics.recent_campaigns.map((campaign) => (
-              <div
-                key={campaign.id}
-                onClick={() => onCampaignClick(campaign.id)}
-                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition"
-              >
-                <div>
-                  <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
-                  <p className="text-sm text-slate-600">
-                    {new Date(campaign.start_date || "").toLocaleDateString("pt-BR")}
-                  </p>
-                </div>
-                <div className="flex gap-4 text-sm">
-                  <span className="text-blue-400">{campaign.users} usuários</span>
-                  <span className="text-yellow-400">{campaign.clicks} cliques</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-slate-500">Nenhuma campanha enviada para o seu departamento.</p>
+        )}
+      </div>
     </div>
   );
 }
