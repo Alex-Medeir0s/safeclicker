@@ -18,6 +18,14 @@ from sqlalchemy.exc import IntegrityError
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+def ensure_user_management_permission(current_user: User):
+    if current_user.role != UserRole.TI:
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas usuários TI podem gerenciar usuários"
+        )
+
+
 @router.get("", response_model=List[UserRead])
 async def get_users(
     skip: int = 0,
@@ -84,6 +92,8 @@ async def create_user(
     db: Session = Depends(get_db)
 ):
     """Criar usuário com validação de role e departamento"""
+    ensure_user_management_permission(current_user)
+
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -123,6 +133,8 @@ async def update_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    ensure_user_management_permission(current_user)
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -178,6 +190,8 @@ async def delete_user(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    ensure_user_management_permission(current_user)
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -224,8 +238,10 @@ async def delete_user(
 
 
 @router.get("/template/download")
-async def download_template():
+async def download_template(current_user: User = Depends(get_current_user)):
     """Baixar template CSV para importação de usuários"""
+    ensure_user_management_permission(current_user)
+
     output = io.StringIO()
     writer = csv.writer(output)
     
@@ -253,6 +269,8 @@ async def import_users_csv(
     db: Session = Depends(get_db)
 ):
     """Importar usuários via arquivo CSV"""
+    ensure_user_management_permission(current_user)
+
     try:
         contents = await file.read()
         text = contents.decode('utf-8')

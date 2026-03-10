@@ -20,10 +20,20 @@ interface Department {
   name: string;
 }
 
+interface Collaborator {
+  full_name: string;
+  email: string;
+  sends: number;
+  clicks: number;
+  campaigns: string[];
+}
+
 export default function Users() {
   const router = useRouter();
+  const [userRole, setUserRole] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -40,13 +50,42 @@ export default function Users() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/");
-      return;
-    }
-    fetchUsers();
-    fetchDepartments();
+    const initializePage = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.push("/");
+        return;
+      }
+
+      try {
+        let role = (localStorage.getItem("userRole") || "").toUpperCase();
+
+        if (!role) {
+          const meResponse = await api.get("/auth/me");
+          role = (meResponse.data?.role || "").toUpperCase();
+          if (role) {
+            localStorage.setItem("userRole", role);
+          }
+        }
+
+        setUserRole(role);
+
+        if (role === "GESTOR") {
+          await fetchCollaborators();
+          return;
+        }
+
+        if (role === "TI") {
+          await Promise.all([fetchUsers(), fetchDepartments()]);
+        }
+      } catch (error) {
+        console.error("Erro ao inicializar tela de usuários:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializePage();
   }, [router]);
 
   const fetchUsers = async () => {
@@ -55,8 +94,16 @@ export default function Users() {
       setUsers(response.data);
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchCollaborators = async () => {
+    try {
+      const response = await api.get("/metrics/dashboard");
+      setCollaborators(response.data?.collaborators || []);
+    } catch (error) {
+      console.error("Erro ao buscar colaboradores do departamento:", error);
+      setCollaborators([]);
     }
   };
 
@@ -217,6 +264,73 @@ export default function Users() {
       </div>
     </div>
   );
+
+  const isGestor = userRole === "GESTOR";
+  const canManageUsers = userRole === "TI";
+
+  if (isGestor) {
+    return (
+      <div className="animate-fade-in">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              Usuários do Departamento
+            </h1>
+            <p className="text-slate-600">Visualização dos colaboradores do seu departamento</p>
+          </div>
+        </div>
+
+        {collaborators.length === 0 ? (
+          <div className="bg-white p-12 rounded-2xl text-center shadow-lg border border-slate-200">
+            <div className="text-6xl mb-4">👥</div>
+            <p className="text-slate-500 text-lg">Nenhum colaborador encontrado no seu departamento</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-slate-100 to-slate-200">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">👤 Colaborador</th>
+                  <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">📧 Emails Enviados</th>
+                  <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">🖱️ Cliques</th>
+                  <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">🎯 Campanhas Enviadas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {collaborators.map((c, idx) => (
+                  <tr
+                    key={`${c.email}-${idx}`}
+                    style={{ animationDelay: `${idx * 0.05}s` }}
+                    className="hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all duration-300 animate-fade-in"
+                  >
+                    <td className="px-6 py-4 text-sm text-slate-900">
+                      <div className="font-semibold">{c.full_name}</div>
+                      <div className="text-xs text-slate-500">{c.email}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-center text-slate-700">{c.sends}</td>
+                    <td className="px-6 py-4 text-sm text-center text-slate-700">{c.clicks}</td>
+                    <td className="px-6 py-4 text-sm text-center text-slate-700">
+                      {c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!canManageUsers) {
+    return (
+      <div className="bg-white p-12 rounded-2xl text-center shadow-lg border border-slate-200 animate-fade-in">
+        <div className="text-6xl mb-4">🔒</div>
+        <p className="text-slate-700 text-lg font-semibold">Acesso não permitido</p>
+        <p className="text-slate-500 mt-2">Apenas usuários TI podem gerenciar usuários.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
