@@ -600,13 +600,13 @@ export default function Users() {
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => handleEdit(user)}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300"
+                        className="bg-slate-100 text-slate-700 border border-slate-300 hover:bg-indigo-600 hover:border-indigo-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300"
                       >
                         ✏️ Editar
                       </button>
                       <button
                         onClick={() => handleDelete(user.id)}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300"
+                        className="bg-slate-100 text-slate-700 border border-slate-300 hover:bg-red-600 hover:border-red-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-300"
                       >
                         🗑️ Excluir
                       </button>
