@@ -585,22 +585,18 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
               {campaign.status === "draft" ? "Rascunho" : "Enviada"}
             </span>
           </div>
-          <div className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
             <span className="text-sm text-slate-600 font-medium flex items-center gap-2"><FiTarget className="w-4 h-4" /> Complexidade:</span>
-            <span className={`text-sm font-bold px-3 py-1 rounded-lg shadow-sm ${
-              campaign.complexity === "basico" ? "bg-blue-100 text-blue-700" :
-              campaign.complexity === "intermediario" ? "bg-yellow-100 text-yellow-700" :
-              "bg-red-100 text-red-700"
-            }`}>
+            <span className="text-sm font-bold px-3 py-1 rounded-lg border border-slate-300 bg-slate-100 text-slate-700">
               {campaign.complexity === "basico" ? "Básico" :
                campaign.complexity === "intermediario" ? "Intermediário" :
                "Avançado"}
             </span>
           </div>
           {campaign.target_audience && (
-            <div className="flex flex-col p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+            <div className="flex flex-col p-3 bg-slate-50 rounded-xl border border-slate-200">
               <span className="text-sm text-slate-600 font-medium mb-1 flex items-center gap-2"><FiBriefcase className="w-4 h-4" /> Departamentos Alvo:</span>
-              <span className="text-sm font-bold text-green-700 line-clamp-2" title={getDepartmentNames()}>
+              <span className="text-sm font-bold text-slate-700 line-clamp-2" title={getDepartmentNames()}>
                 {getDepartmentNames()}
               </span>
             </div>
@@ -611,28 +607,28 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
           <button 
             onClick={handleViewHtml}
             disabled={loading}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
+            className="flex-1 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 border border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
           >
             {loading ? <><FiLoader className="w-4 h-4 animate-spin" /> Carregando...</> : <><FiEye className="w-4 h-4" /> Visualizar</>}
           </button>
           <button 
             onClick={handleSend}
             disabled={campaign.status !== "draft" || sending || !campaign.target_department_id}
-            className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 disabled:hover:scale-100 flex items-center justify-center gap-2"
+            className="flex-1 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 border border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
             title={!campaign.target_department_id ? "Configure um departamento alvo antes de enviar" : ""}
           >
             {sending ? <><FiLoader className="w-4 h-4 animate-spin" /> Enviando...</> : campaign.status === "draft" ? <><FiSend className="w-4 h-4" /> Enviar</> : <><FiCheck className="w-4 h-4" /> Enviada</>}
           </button>
           <button 
             onClick={() => onEditCampaign(campaign)}
-            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
+            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
           >
             <FiEdit2 className="w-4 h-4" /> Editar
           </button>
           <button 
             onClick={handleDelete}
             disabled={deleting}
-            className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2"
+            className="flex-1 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 border border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
           >
             {deleting ? <><FiLoader className="w-4 h-4 animate-spin" /> Deletando...</> : <><FiTrash2 className="w-4 h-4" /> Excluir</>}
           </button>
