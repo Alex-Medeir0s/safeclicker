@@ -28,7 +28,8 @@ interface DashboardMetrics {
     status: string;
     users: number;
     clicks: number;
-    reports: number;
+    trainings_completed?: number;
+    reports?: number;
     start_date: string | null;
   }>;
 }
@@ -584,9 +585,9 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                   </p>
                 </div>
                 <div className="flex gap-4 text-sm">
-                  <span className="text-blue-400">{campaign.users} usuários</span>
-                  <span className="text-yellow-400">{campaign.clicks} cliques</span>
-                  <span className="text-red-400">{campaign.reports} reportes</span>
+                  <span className="text-slate-900">{campaign.users} usuários</span>
+                  <span className="text-slate-900">{campaign.clicks} cliques</span>
+                  <span className="text-slate-900">{campaign.trainings_completed ?? 0} treinamento</span>
                 </div>
               </div>
             ))}

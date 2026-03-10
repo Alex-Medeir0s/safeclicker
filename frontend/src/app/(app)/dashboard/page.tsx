@@ -31,7 +31,8 @@ interface DashboardMetrics {
     status: string;
     users: number;
     clicks: number;
-    reports: number;
+    trainings_completed?: number;
+    reports?: number;
     start_date: string | null;
   }>;
   sent_campaigns?: Array<{
@@ -49,6 +50,8 @@ interface ClickDetail {
   email: string;
   clicked_at: string | null;
   ip_address: string | null;
+  training_completed: boolean;
+  training_completed_at: string | null;
 }
 
 interface CampaignClickDetails {
@@ -56,6 +59,7 @@ interface CampaignClickDetails {
   campaign_name: string;
   total_sends: number;
   total_clicks: number;
+  total_trainings: number;
   clicks: ClickDetail[];
 }
 
@@ -191,7 +195,7 @@ export default function Dashboard() {
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold">{selectedCampaign.campaign_name}</h2>
                 <p className="text-indigo-100 text-sm sm:text-base mt-1">
-                  {selectedCampaign.total_clicks} de {selectedCampaign.total_sends} usuários clicaram
+                  {selectedCampaign.total_clicks} de {selectedCampaign.total_sends} usuários clicaram • {selectedCampaign.total_trainings} concluíram o treinamento
                 </p>
               </div>
               <button
@@ -209,30 +213,48 @@ export default function Dashboard() {
                   <p className="text-slate-600">Carregando dados...</p>
                 </div>
               </div>
-            ) : selectedCampaign.clicks.length === 0 ? (
-              <div className="p-10 text-center text-slate-500 bg-slate-50">
-                Nenhum clique registrado nesta campanha
-              </div>
             ) : (
-              <div className="divide-y divide-slate-200 overflow-y-auto max-h-[66vh] bg-slate-50">
-                {selectedCampaign.clicks.map((click, idx) => (
-                  <div key={idx} className="p-5 hover:bg-white transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-slate-900 text-base">{click.full_name}</p>
-                        <p className="text-sm text-slate-600">{click.email}</p>
-                        {click.ip_address && (
-                          <p className="text-xs text-slate-500 mt-1">IP: {click.ip_address}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-500">
-                          {formatDateTimeBrasilia(click.clicked_at)}
-                        </p>
-                      </div>
+              <div className="overflow-y-auto max-h-[66vh] bg-slate-50 p-6 space-y-6">
+                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  {selectedCampaign.clicks.length === 0 ? (
+                    <div className="p-5 text-sm text-slate-500">Nenhum clique registrado nesta campanha.</div>
+                  ) : (
+                    <div className="divide-y divide-slate-200">
+                      {selectedCampaign.clicks.map((click, idx) => (
+                        <div key={`${click.email}-click-${idx}`} className="p-5 hover:bg-slate-50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold text-slate-900 text-base">{click.full_name}</p>
+                              <p className="text-sm text-slate-600">{click.email}</p>
+                              {click.training_completed ? (
+                                <span className="inline-flex items-center mt-2 rounded-full bg-emerald-100 text-emerald-700 px-2.5 py-0.5 text-xs font-semibold">
+                                  Fez o treinamento
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center mt-2 rounded-full bg-rose-100 text-rose-700 px-2.5 py-0.5 text-xs font-semibold">
+                                  Não fez o treinamento
+                                </span>
+                              )}
+                              {click.ip_address && (
+                                <p className="text-xs text-slate-500 mt-1">IP: {click.ip_address}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-slate-500">
+                                {formatDateTimeBrasilia(click.clicked_at)}
+                              </p>
+                              {click.training_completed && (
+                                <p className="text-xs text-emerald-600 mt-1">
+                                  Treinamento: {formatDateTimeBrasilia(click.training_completed_at)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
             )}
           </div>

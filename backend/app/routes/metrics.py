@@ -37,6 +37,8 @@ class ClickDetail(BaseModel):
     email: str
     clicked_at: Optional[datetime]
     ip_address: Optional[str]
+    training_completed: bool = False
+    training_completed_at: Optional[datetime] = None
 
 
 class CampaignClickDetails(BaseModel):
@@ -44,6 +46,7 @@ class CampaignClickDetails(BaseModel):
     campaign_name: str
     total_sends: int
     total_clicks: int
+    total_trainings: int = 0
     clicks: List[ClickDetail]
 
 
@@ -53,6 +56,7 @@ class RecentCampaign(BaseModel):
     status: str
     users: int
     clicks: int
+    trainings_completed: int = 0
     reports: int
     start_date: Optional[datetime]
 
@@ -361,16 +365,27 @@ async def get_dashboard_metrics(
             .join(ClickEvent, ClickEvent.campaign_send_id == CampaignSend.id)
             .filter(CampaignSend.campaign_id == campaign_id)
         )
+
+        trainings_count = (
+            db.query(func.count(func.distinct(CampaignSend.id)))
+            .join(TrainingCompletion, TrainingCompletion.campaign_send_id == CampaignSend.id)
+            .filter(CampaignSend.campaign_id == campaign_id)
+        )
         
         from app.models.user import UserRole
         if current_user.role == UserRole.GESTOR:
             clicks_count = clicks_count.join(User, CampaignSend.user_id == User.id).filter(
                 User.department_id == current_user.department_id
             )
+            trainings_count = trainings_count.join(User, CampaignSend.user_id == User.id).filter(
+                User.department_id == current_user.department_id
+            )
         elif current_user.role == UserRole.COLABORADOR:
             clicks_count = clicks_count.filter(CampaignSend.user_id == current_user.id)
+            trainings_count = trainings_count.filter(CampaignSend.user_id == current_user.id)
         
         clicks_count = clicks_count.scalar() or 0
+        trainings_count = trainings_count.scalar() or 0
         
         recent_campaigns.append(
             RecentCampaign(
@@ -379,6 +394,7 @@ async def get_dashboard_metrics(
                 status=campaign_status or "",
                 users=users_count,
                 clicks=clicks_count,
+                trainings_completed=trainings_count,
                 reports=0,
                 start_date=start_date,
             )
@@ -409,7 +425,7 @@ async def get_campaign_clicks(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Obter detalhes dos cliques de uma campanha (usuários que clicaram)"""
+    """Obter detalhes de interação de uma campanha (somente quem clicou, com status de treinamento)"""
     from app.core.access_control import check_resource_access
     
     campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
@@ -428,10 +444,13 @@ async def get_campaign_clicks(
         User.email,
         func.max(ClickEvent.created_at).label("clicked_at"),
         func.max(ClickEvent.ip_address).label("ip_address"),
+        func.max(TrainingCompletion.completed_at).label("training_completed_at"),
     ).join(
         CampaignSend, User.id == CampaignSend.user_id
     ).join(
         ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
+    ).outerjoin(
+        TrainingCompletion, CampaignSend.id == TrainingCompletion.campaign_send_id
     ).filter(
         CampaignSend.campaign_id == campaign_id
     )
@@ -456,15 +475,20 @@ async def get_campaign_clicks(
             full_name=row.full_name or "Desconhecido",
             email=row.email,
             clicked_at=row.clicked_at,
-            ip_address=row.ip_address
+            ip_address=row.ip_address,
+            training_completed=row.training_completed_at is not None,
+            training_completed_at=row.training_completed_at,
         )
         for row in clicks_raw
     ]
+
+    total_trainings = sum(1 for click in clicks if click.training_completed)
     
     return CampaignClickDetails(
         campaign_id=campaign_id,
         campaign_name=campaign.name,
         total_sends=total_sends,
         total_clicks=len(clicks),
-        clicks=clicks
+        total_trainings=total_trainings,
+        clicks=clicks,
     )

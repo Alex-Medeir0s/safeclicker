@@ -371,7 +371,7 @@ export default function Reports() {
 
           autoTable(doc, {
             startY: currentY + 12,
-            head: [["Nome", "Email", "IP", "Data do Clique"]],
+            head: [["Nome", "Email", "IP", "Data do Clique", "Treinamento", "Data do Treinamento"]],
             body:
               clicks.length > 0
                 ? clicks.map((click: any) => [
@@ -379,14 +379,19 @@ export default function Reports() {
                     click.email,
                     click.ip_address || "-",
                     formatDateTimeBrasilia(click.clicked_at),
+                    click.training_completed ? "Fez" : "Não fez",
+                    click.training_completed
+                      ? formatDateTimeBrasilia(click.training_completed_at)
+                      : "-",
                   ])
-                : [["Nenhum clique registrado", "-", "-", "-"]],
-            styles: { ...tableStyles, fontSize: 9 },
+                : [["Nenhum clique registrado", "-", "-", "-", "-", "-"]],
+            styles: { ...tableStyles, fontSize: 8 },
             headStyles: tableHeadStyles,
             alternateRowStyles: tableAltRowStyles,
             columnStyles: {
               0: { halign: "left" },
               1: { halign: "left" },
+              5: { halign: "right" },
             },
           });
 
