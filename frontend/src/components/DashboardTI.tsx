@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { StatCard } from "@/components/StatCard";
 import { FiTarget, FiCheckCircle, FiUsers, FiZap } from "react-icons/fi";
 
@@ -36,6 +37,8 @@ interface DashboardTIProps {
 }
 
 export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+
   const getClickRateColor = (rate: number) => {
     const normalizedRate = Math.max(0, Math.min(100, rate));
 
@@ -43,6 +46,104 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
     if (normalizedRate <= 66) return "text-yellow-500";
     return "text-red-600";
   };
+
+  const piePalette = [
+    "var(--color-blue-500)",
+    "var(--color-emerald-500)",
+    "var(--color-amber-500)",
+    "var(--color-violet-500)",
+    "var(--color-cyan-500)",
+    "var(--color-rose-500)",
+    "var(--color-lime-500)",
+    "var(--color-orange-500)",
+  ];
+
+  const pieSegments = useMemo(() => {
+    const source = metrics.department_stats;
+
+    if (source.length === 0) {
+      return [] as Array<{
+        department: string;
+        sends: number;
+        clicks: number;
+        rate: number;
+        percentage: number;
+        start: number;
+        end: number;
+        color: string;
+      }>;
+    }
+
+    const totalClicks = source.reduce((sum, dept) => sum + dept.clicks, 0);
+    const actualPercentages = source.map((dept) =>
+      totalClicks > 0 ? (dept.clicks / totalClicks) * 100 : 0
+    );
+
+    const chartPercentages = (() => {
+      if (totalClicks <= 0) {
+        return source.map(() => 100 / source.length);
+      }
+
+      const minVisibleSlice = 0.8;
+      const baseVisual = source.map((dept, idx) =>
+        dept.clicks > 0 ? actualPercentages[idx] : minVisibleSlice
+      );
+      const baseTotal = baseVisual.reduce((sum, value) => sum + value, 0);
+
+      return baseVisual.map((value) => (value / baseTotal) * 100);
+    })();
+
+    let accumulated = 0;
+
+    const segments = source.map((dept, idx) => {
+      const percentage = actualPercentages[idx];
+      const chartPercentage = chartPercentages[idx];
+      const start = accumulated;
+      const end = accumulated + chartPercentage;
+      accumulated = end;
+
+      return {
+        ...dept,
+        percentage,
+        start,
+        end,
+        color: piePalette[idx % piePalette.length],
+      };
+    });
+
+    if (segments.length > 0) {
+      segments[segments.length - 1].end = 100;
+    }
+
+    return segments;
+  }, [metrics.department_stats]);
+
+  useEffect(() => {
+    if (pieSegments.length === 0) {
+      setSelectedDepartment(null);
+      return;
+    }
+
+    if (!selectedDepartment || !pieSegments.some((seg) => seg.department === selectedDepartment)) {
+      setSelectedDepartment(pieSegments[0].department);
+    }
+  }, [pieSegments, selectedDepartment]);
+
+  const pieGradient = useMemo(() => {
+    if (pieSegments.length === 0) return "";
+
+    return `conic-gradient(${pieSegments
+      .map((segment) => `${segment.color} ${segment.start}% ${segment.end}%`)
+      .join(", ")})`;
+  }, [pieSegments]);
+
+  const selectedDeptData = metrics.department_stats.find(
+    (dept) => dept.department === selectedDepartment
+  );
+
+  const selectedDeptSegment = pieSegments.find(
+    (segment) => segment.department === selectedDepartment
+  );
 
   return (
     <div className="space-y-6">
@@ -79,31 +180,78 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
         />
       </div>
 
-      {/* Estatísticas por departamento */}
       <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
-        <h2 className="text-xl font-bold mb-4 text-slate-900">Desempenho por Departamento</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-slate-700 border-b border-slate-300">
-                <th className="pb-3">Departamento</th>
-                <th className="pb-3 text-right">Envios</th>
-                <th className="pb-3 text-right">Cliques</th>
-                <th className="pb-3 text-right">Taxa</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metrics.department_stats.map((dept, idx) => (
-                <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
-                  <td className="py-3 text-slate-900">{dept.department}</td>
-                  <td className="py-3 text-right text-slate-700">{dept.sends}</td>
-                  <td className="py-3 text-right text-slate-700">{dept.clicks}</td>
-                  <td className="py-3 text-right text-slate-700">{dept.rate.toFixed(1)}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <h2 className="text-xl font-bold mb-4 text-slate-900">Desempenho por Departamento (Geral)</h2>
+
+        {pieSegments.length > 0 ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className="flex justify-center">
+              <div className="relative w-64 h-64 rounded-full" style={{ background: pieGradient }}>
+                <div className="absolute inset-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-center px-3">
+                  <div>
+                    <p className="text-xs text-slate-500">Total de cliques</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      {pieSegments.reduce((sum, segment) => sum + segment.clicks, 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Selecione o departamento
+                </label>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-3 h-3 rounded-full shrink-0"
+                    style={{ backgroundColor: selectedDeptSegment?.color || "var(--color-slate-400)" }}
+                  />
+                  <select
+                    value={selectedDepartment ?? ""}
+                    onChange={(e) => setSelectedDepartment(e.target.value || null)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {pieSegments.map((segment) => (
+                      <option
+                        key={segment.department}
+                        value={segment.department}
+                        style={{ color: segment.color }}
+                      >
+                        ● {segment.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {selectedDeptData && (
+                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-sm font-semibold text-slate-900 mb-2">{selectedDeptData.department}</p>
+                  <div className="grid grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <p className="text-slate-500">Envios</p>
+                      <p className="font-semibold text-slate-800">{selectedDeptData.sends}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Cliques</p>
+                      <p className="font-semibold text-slate-800">{selectedDeptData.clicks}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500">Taxa</p>
+                      <p className={`font-semibold ${getClickRateColor(selectedDeptData.rate)}`}>
+                        {selectedDeptData.rate.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-slate-500">Sem dados de cliques por departamento para gerar o gráfico.</p>
+        )}
       </div>
 
       {/* Campanhas recentes */}
