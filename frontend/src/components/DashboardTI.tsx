@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { StatCard } from "@/components/StatCard";
-import { FiTarget, FiCheckCircle, FiUsers, FiZap } from "react-icons/fi";
+import { FiTarget, FiCheckCircle, FiUsers, FiZap, FiMaximize2, FiMinimize2, FiMail } from "react-icons/fi";
 
 interface DashboardMetrics {
   summary: {
@@ -40,6 +41,8 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
   const GENERAL_DEPARTMENT_OPTION = "__GERAL__";
   const [selectedDepartment, setSelectedDepartment] = useState<string>(GENERAL_DEPARTMENT_OPTION);
   const [isPieRefreshing, setIsPieRefreshing] = useState(false);
+  const [isMonitorMode, setIsMonitorMode] = useState(false);
+  const monitorPanelRef = useRef<HTMLDivElement | null>(null);
   const hasMountedRef = useRef(false);
 
   const getClickRateColor = (rate: number) => {
@@ -158,6 +161,20 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
     };
   }, [metrics.department_stats]);
 
+  const monitorTotals = useMemo(() => {
+    if (selectedDepartment === GENERAL_DEPARTMENT_OPTION || !selectedDeptData) {
+      return {
+        sends: generalTotals.sends,
+        clicks: generalTotals.clicks,
+      };
+    }
+
+    return {
+      sends: selectedDeptData.sends,
+      clicks: selectedDeptData.clicks,
+    };
+  }, [selectedDepartment, selectedDeptData, generalTotals]);
+
   const departmentChartData = useMemo(() => {
     if (!selectedDeptData) return null;
 
@@ -228,6 +245,35 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
     return () => window.clearTimeout(timeoutId);
   }, [metrics]);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsMonitorMode(document.fullscreenElement === monitorPanelRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const handleToggleMonitorMode = async () => {
+    try {
+      if (document.fullscreenElement === monitorPanelRef.current) {
+        await document.exitFullscreen();
+        return;
+      }
+
+      if (monitorPanelRef.current) {
+        await monitorPanelRef.current.requestFullscreen();
+      }
+    } catch (error) {
+      console.error("Erro ao alternar tela cheia do monitoramento:", error);
+    }
+  };
+
+  const pieSizeClass = isMonitorMode ? "w-80 h-80" : "w-64 h-64";
+
   return (
     <div className="space-y-6">
       <div>
@@ -263,16 +309,91 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
-        <h2 className="text-xl font-bold mb-4 text-slate-900">Desempenho por Departamento (Geral)</h2>
+      <div
+        ref={monitorPanelRef}
+        className={`bg-white rounded-lg shadow-lg p-6 border border-slate-200 transition-all duration-300 ${
+          isMonitorMode ? "min-h-screen rounded-none p-8 overflow-y-auto flex items-center justify-center" : ""
+        }`}
+      >
+        <div className={`w-full ${isMonitorMode ? "max-w-7xl mx-auto relative" : ""}`}>
+          {isMonitorMode && (
+            <div className="fixed top-4 left-0 z-50">
+              <Image
+                src="/safeclicker%20logo%20black.png"
+                alt="SafeClicker"
+                width={560}
+                height={150}
+                className="h-[150px] w-[560px] object-contain"
+                priority
+              />
+            </div>
+          )}
+          {isMonitorMode && (
+            <div className="absolute top-0 right-0 flex items-center gap-2">
+              <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                Monitoramento em tempo real
+              </span>
+              <button
+                onClick={handleToggleMonitorMode}
+                title="Sair da tela cheia"
+                aria-label="Sair da tela cheia"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+              >
+                <FiMinimize2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          <div
+            className={`mb-4 flex flex-col gap-3 ${
+              isMonitorMode ? "items-center text-center pt-28" : "sm:flex-row sm:items-center sm:justify-between"
+            }`}
+          >
+            <h2 className="text-xl font-bold text-slate-900">Desempenho por Departamento (Geral)</h2>
+            {!isMonitorMode && (
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <button
+                  onClick={handleToggleMonitorMode}
+                  title="Tela cheia"
+                  aria-label="Abrir em tela cheia"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+                >
+                  <FiMaximize2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
 
-        {metrics.department_stats.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          {isMonitorMode && (
+            <div className="mb-8 w-full max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+                    Total de Emails Enviados
+                  </p>
+                  <FiMail className="w-5 h-5 text-slate-400" />
+                </div>
+                <p className="mt-4 text-5xl font-extrabold leading-none text-slate-900">{monitorTotals.sends}</p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+                    Total de Cliques
+                  </p>
+                  <FiZap className="w-5 h-5 text-emerald-500" />
+                </div>
+                <p className="mt-4 text-5xl font-extrabold leading-none text-slate-900">{monitorTotals.clicks}</p>
+              </div>
+            </div>
+          )}
+
+          {metrics.department_stats.length > 0 ? (
+            <div className={`grid grid-cols-1 ${isMonitorMode ? "xl:grid-cols-2 gap-6 items-start" : "lg:grid-cols-2 gap-8 items-center"}`}>
             <div className="flex flex-col items-center gap-4">
               {selectedDepartment === GENERAL_DEPARTMENT_OPTION ? (
                 generalPieSegments.length > 0 ? (
                   <div
-                    className={`relative w-64 h-64 rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
+                    className={`relative ${pieSizeClass} rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
                     style={{ background: generalPieGradient }}
                   >
                     {isPieRefreshing && (
@@ -280,13 +401,13 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                     )}
                   </div>
                 ) : (
-                  <div className="w-64 h-64 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6">
+                  <div className={`${pieSizeClass} rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6`}>
                     <p className="text-sm text-slate-500">Sem cliques para gerar o gráfico geral.</p>
                   </div>
                 )
               ) : departmentChartData && departmentChartData.sends > 0 ? (
                 <div
-                  className={`relative w-64 h-64 rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
+                  className={`relative ${pieSizeClass} rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
                   style={{ background: departmentPieGradient }}
                 >
                   {isPieRefreshing && (
@@ -294,7 +415,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                   )}
                 </div>
               ) : (
-                <div className="w-64 h-64 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6">
+                <div className={`${pieSizeClass} rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6`}>
                   <p className="text-sm text-slate-500">Sem dados de envios e cliques para o departamento.</p>
                 </div>
               )}
@@ -322,7 +443,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 w-full">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Selecione o departamento
@@ -432,9 +553,10 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
 
             </div>
           </div>
-        ) : (
-          <p className="text-slate-500">Sem dados de departamentos para gerar o gráfico.</p>
-        )}
+          ) : (
+            <p className="text-slate-500">Sem dados de departamentos para gerar o gráfico.</p>
+          )}
+        </div>
       </div>
 
       {/* Campanhas recentes */}
