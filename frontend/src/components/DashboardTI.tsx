@@ -12,6 +12,7 @@ interface DashboardMetrics {
     total_users: number;
     emails_received?: number;
     emails_clicked?: number;
+    trainings_completed?: number;
     click_rate: number;
     report_rate: number;
   };
@@ -282,7 +283,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
       </div>
 
       {/* Cards de estatísticas gerais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
           title="Total de Campanhas"
           value={metrics.summary.total_campaigns}
@@ -300,6 +301,12 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
           value={metrics.summary.total_users}
           icon={<FiUsers className="w-6 h-6" />}
           color="purple"
+        />
+        <StatCard
+          title="Treinamentos Concluídos"
+          value={metrics.summary.trainings_completed ?? 0}
+          icon={<FiCheckCircle className="w-6 h-6" />}
+          color="text-emerald-600"
         />
         <StatCard
           title="Taxa de Cliques"

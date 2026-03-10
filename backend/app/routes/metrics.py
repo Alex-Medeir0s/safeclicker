@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.department import Department
 from app.models.campaign_send import CampaignSend
 from app.models.click_event import ClickEvent
+from app.models.training_completion import TrainingCompletion
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Set
 from datetime import datetime
@@ -71,6 +72,7 @@ class MetricsSummary(BaseModel):
     total_users: int
     emails_received: int
     emails_clicked: int
+    trainings_completed: int = 0
     click_rate: float
     report_rate: float
     department_campaigns: Optional[int] = None
@@ -124,6 +126,21 @@ async def get_dashboard_metrics(
         total_clicks = total_clicks.filter(CampaignSend.user_id == current_user.id)
     
     total_clicks = total_clicks.scalar() or 0
+    trainings_completed_query = (
+        db.query(func.count(func.distinct(TrainingCompletion.campaign_send_id)))
+        .join(CampaignSend, TrainingCompletion.campaign_send_id == CampaignSend.id)
+    )
+
+    if current_user.role == UserRole.GESTOR:
+        trainings_completed_query = trainings_completed_query.join(
+            User, CampaignSend.user_id == User.id
+        ).filter(User.department_id == current_user.department_id)
+    elif current_user.role == UserRole.COLABORADOR:
+        trainings_completed_query = trainings_completed_query.filter(
+            CampaignSend.user_id == current_user.id
+        )
+
+    trainings_completed = trainings_completed_query.scalar() or 0
     click_rate = (total_clicks / total_sends * 100) if total_sends > 0 else 0
     
     # Taxa de reporte (simulado)
@@ -374,6 +391,7 @@ async def get_dashboard_metrics(
             total_users=total_users,
             emails_received=total_sends,
             emails_clicked=total_clicks,
+            trainings_completed=trainings_completed,
             click_rate=click_rate,
             report_rate=report_rate,
             department_campaigns=department_campaigns

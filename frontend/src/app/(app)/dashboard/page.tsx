@@ -15,6 +15,7 @@ interface DashboardMetrics {
     total_users: number;
     emails_received: number;
     emails_clicked: number;
+    trainings_completed?: number;
     click_rate: number;
     report_rate: number;
   };
@@ -109,6 +110,7 @@ export default function Dashboard() {
           total_users: 0,
           emails_received: 0,
           emails_clicked: 0,
+          trainings_completed: 0,
           click_rate: 0,
           report_rate: 0,
         },

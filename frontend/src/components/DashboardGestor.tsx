@@ -1,7 +1,7 @@
 "use client";
 
 import { StatCard } from "@/components/StatCard";
-import { FiTarget, FiMail, FiUsers, FiZap } from "react-icons/fi";
+import { FiTarget, FiMail, FiUsers, FiZap, FiCheckCircle } from "react-icons/fi";
 
 interface DashboardMetrics {
   summary: {
@@ -10,6 +10,7 @@ interface DashboardMetrics {
     total_users: number;
     emails_received?: number;
     emails_clicked?: number;
+    trainings_completed?: number;
     click_rate: number;
     report_rate: number;
     department_campaigns?: number;
@@ -72,7 +73,7 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
       </div>
 
       {/* Cards de estatísticas do departamento */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
           title="Campanhas do Departamento"
           value={metrics.summary.department_campaigns ?? metrics.summary.total_campaigns}
@@ -84,6 +85,12 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
           value={metrics.summary.emails_received}
           icon={<FiMail className="w-6 h-6" />}
           color="green"
+        />
+        <StatCard
+          title="Treinamentos Concluídos"
+          value={metrics.summary.trainings_completed ?? 0}
+          icon={<FiCheckCircle className="w-6 h-6" />}
+          color="text-emerald-600"
         />
         <StatCard
           title="Usuários no Departamento"

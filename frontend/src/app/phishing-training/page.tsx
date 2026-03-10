@@ -1,17 +1,36 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import { FiAlertTriangle, FiCheckCircle, FiPhone, FiMessageSquare, FiTarget, FiBriefcase } from 'react-icons/fi';
+import { api } from '@/services/api';
 
 function PhishingTrainingContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setTimeout(() => setLoading(false), 600);
   }, []);
+
+  const handleAcknowledge = async () => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
+      if (token) {
+        await api.post('/campaigns/training/complete', { token });
+      }
+    } catch (error) {
+      console.error('Erro ao registrar conclusão do treinamento:', error);
+    } finally {
+      router.push('/dashboard');
+    }
+  };
 
   if (loading) {
     return (
@@ -274,12 +293,14 @@ function PhishingTrainingContent() {
             ⚠️ Os criminosos cibernéticos têm como alvo pessoas como nós! Mantenha-se informado e vigilante.
           </p>
           <div className="pt-4">
-            <a
-              href="/dashboard"
-              className="inline-flex items-center justify-center px-8 py-3 bg-white text-indigo-700 font-semibold rounded-xl hover:bg-indigo-50 transition shadow-lg"
+            <button
+              type="button"
+              onClick={handleAcknowledge}
+              disabled={isSubmitting}
+              className="inline-flex items-center justify-center px-8 py-3 bg-white text-indigo-700 font-semibold rounded-xl hover:bg-indigo-50 transition shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Ciente
-            </a>
+              {isSubmitting ? 'Registrando...' : 'Ciente'}
+            </button>
           </div>
         </section>
 

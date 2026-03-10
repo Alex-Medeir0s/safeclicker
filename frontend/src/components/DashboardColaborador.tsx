@@ -1,7 +1,7 @@
 "use client";
 
 import { StatCard } from "@/components/StatCard";
-import { FiTarget, FiZap, FiAlertCircle, FiAward } from "react-icons/fi";
+import { FiTarget, FiZap, FiAlertCircle, FiAward, FiCheckCircle } from "react-icons/fi";
 
 interface DashboardMetrics {
   summary: {
@@ -10,6 +10,7 @@ interface DashboardMetrics {
     total_users: number;
     emails_received: number;
     emails_clicked: number;
+    trainings_completed?: number;
     click_rate: number;
   };
   recent_campaigns?: Array<{
@@ -47,7 +48,7 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
       </div>
 
       {/* Cards de estatísticas pessoais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         <StatCard
           title="Pontuação de Segurança"
           value={`${securityScore.toFixed(0)}%`}
@@ -65,6 +66,12 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
           value={metrics.summary.emails_clicked}
           icon={<FiAlertCircle className="w-6 h-6" />}
           color="red"
+        />
+        <StatCard
+          title="Treinamentos Concluídos"
+          value={metrics.summary.trainings_completed ?? 0}
+          icon={<FiCheckCircle className="w-6 h-6" />}
+          color="text-emerald-600"
         />
         <StatCard
           title="Taxa de Cliques"

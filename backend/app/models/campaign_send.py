@@ -26,4 +26,11 @@ class CampaignSend(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    training_completion = relationship(
+        "TrainingCompletion",
+        back_populates="campaign_send",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 

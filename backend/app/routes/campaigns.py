@@ -5,7 +5,8 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.exc import SQLAlchemyError
+from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -14,11 +15,22 @@ from app.core.access_control import apply_scope, check_resource_access
 from app.models.campaign import Campaign
 from app.models.campaign_send import CampaignSend
 from app.models.click_event import ClickEvent
+from app.models.training_completion import TrainingCompletion
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignRead, CampaignUpdate
 from app.services.email_service import email_service
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
+
+
+class TrainingCompleteRequest(BaseModel):
+    token: str
+
+
+class TrainingCompleteResponse(BaseModel):
+    recorded: bool
+    campaign_send_id: int
+    completed_at: datetime
 
 
 @router.get("", response_model=List[CampaignRead])
@@ -140,6 +152,10 @@ async def delete_campaign(
             db.query(CampaignSend.id)
             .filter(CampaignSend.campaign_id == campaign.id)
         )
+
+        db.query(TrainingCompletion).filter(
+            TrainingCompletion.campaign_send_id.in_(send_ids_query)
+        ).delete(synchronize_session=False)
 
         db.query(ClickEvent).filter(
             ClickEvent.campaign_send_id.in_(send_ids_query)
@@ -299,4 +315,63 @@ def track_click(token: str, request: Request, db: Session = Depends(get_db)):
 
     frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
     return RedirectResponse(url=f"{frontend}/click-alert?token={token}")
+
+
+@router.post("/training/complete", response_model=TrainingCompleteResponse)
+def complete_training(
+    payload: TrainingCompleteRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    token = (payload.token or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Token é obrigatório")
+
+    send_row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
+    if not send_row:
+        raise HTTPException(status_code=404, detail="Token inválido")
+
+    existing_completion = (
+        db.query(TrainingCompletion)
+        .filter(TrainingCompletion.campaign_send_id == send_row.id)
+        .first()
+    )
+
+    if existing_completion:
+        return TrainingCompleteResponse(
+            recorded=False,
+            campaign_send_id=send_row.id,
+            completed_at=existing_completion.completed_at,
+        )
+
+    completion = TrainingCompletion(
+        campaign_send_id=send_row.id,
+        completed_at=datetime.utcnow(),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", ""),
+    )
+    try:
+        db.add(completion)
+        db.commit()
+        db.refresh(completion)
+    except IntegrityError:
+        db.rollback()
+        existing_completion = (
+            db.query(TrainingCompletion)
+            .filter(TrainingCompletion.campaign_send_id == send_row.id)
+            .first()
+        )
+        if existing_completion:
+            return TrainingCompleteResponse(
+                recorded=False,
+                campaign_send_id=send_row.id,
+                completed_at=existing_completion.completed_at,
+            )
+        raise HTTPException(status_code=500, detail="Erro ao registrar conclusão")
+
+    return TrainingCompleteResponse(
+        recorded=True,
+        campaign_send_id=send_row.id,
+        completed_at=completion.completed_at,
+    )
 
