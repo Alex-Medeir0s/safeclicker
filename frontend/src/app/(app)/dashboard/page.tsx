@@ -126,6 +126,18 @@ export default function Dashboard() {
     }
   };
 
+  const formatDateTimeBrasilia = (dateTime: string | null | undefined) => {
+    if (!dateTime) return "Data desconhecida";
+
+    const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(dateTime);
+    const normalizedDateTime = hasTimezone ? dateTime : `${dateTime}Z`;
+    const parsedDate = new Date(normalizedDateTime);
+
+    if (Number.isNaN(parsedDate.getTime())) return "Data desconhecida";
+
+    return parsedDate.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -165,51 +177,49 @@ export default function Dashboard() {
 
       {/* Modal de Cliques */}
       {selectedCampaign && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-96 overflow-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 flex items-center justify-between">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-5xl w-full max-h-[88vh] overflow-hidden">
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 sm:p-7 flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">{selectedCampaign.campaign_name}</h2>
-                <p className="text-indigo-100 text-sm">
+                <h2 className="text-2xl sm:text-3xl font-bold">{selectedCampaign.campaign_name}</h2>
+                <p className="text-indigo-100 text-sm sm:text-base mt-1">
                   {selectedCampaign.total_clicks} de {selectedCampaign.total_sends} usuários clicaram
                 </p>
               </div>
               <button
                 onClick={() => setSelectedCampaign(null)}
-                className="text-white hover:text-indigo-100 text-xl font-bold"
+                className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
               >
                 <FiX className="w-5 h-5" />
               </button>
             </div>
 
             {loadingClicks ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center py-20 bg-slate-50">
                 <div className="text-center">
-                  <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                   <p className="text-slate-600">Carregando dados...</p>
                 </div>
               </div>
             ) : selectedCampaign.clicks.length === 0 ? (
-              <div className="p-6 text-center text-slate-500">
+              <div className="p-10 text-center text-slate-500 bg-slate-50">
                 Nenhum clique registrado nesta campanha
               </div>
             ) : (
-              <div className="divide-y divide-slate-200">
+              <div className="divide-y divide-slate-200 overflow-y-auto max-h-[66vh] bg-slate-50">
                 {selectedCampaign.clicks.map((click, idx) => (
-                  <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
+                  <div key={idx} className="p-5 hover:bg-white transition-colors">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-slate-900">{click.full_name}</p>
+                        <p className="font-semibold text-slate-900 text-base">{click.full_name}</p>
                         <p className="text-sm text-slate-600">{click.email}</p>
                         {click.ip_address && (
-                          <p className="text-xs text-slate-500">IP: {click.ip_address}</p>
+                          <p className="text-xs text-slate-500 mt-1">IP: {click.ip_address}</p>
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-slate-500">
-                          {click.clicked_at
-                            ? new Date(click.clicked_at).toLocaleString("pt-BR")
-                            : "Data desconhecida"}
+                        <p className="text-sm text-slate-500">
+                          {formatDateTimeBrasilia(click.clicked_at)}
                         </p>
                       </div>
                     </div>
