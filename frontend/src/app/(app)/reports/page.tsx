@@ -27,6 +27,7 @@ export default function Reports() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [userRole, setUserRole] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignClickDetails | null>(null);
   const [loadingClicks, setLoadingClicks] = useState(false);
 
@@ -55,6 +56,22 @@ export default function Reports() {
       router.push("/");
       return;
     }
+
+    const storedRole = (localStorage.getItem("userRole") || "").toUpperCase();
+    if (storedRole) {
+      setUserRole(storedRole);
+    } else {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUserRole((parsedUser?.role || "").toUpperCase());
+        } catch {
+          setUserRole("");
+        }
+      }
+    }
+
     fetchReportData();
   }, [router]);
 
@@ -484,48 +501,50 @@ export default function Reports() {
         </table>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow mt-8">
-        <h2 className="text-xl font-bold mb-4">Campanhas Enviadas para o Departamento</h2>
+      {userRole !== "TI" && (
+        <div className="bg-white p-6 rounded-lg shadow mt-8">
+          <h2 className="text-xl font-bold mb-4">Campanhas Enviadas para o Departamento</h2>
 
-        {data.sent_campaigns && data.sent_campaigns.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-100">
-                <tr>
-                  <th className="px-4 py-2 text-left text-sm font-semibold">Campanha</th>
-                  <th className="px-4 py-2 text-center text-sm font-semibold">Envios</th>
-                  <th className="px-4 py-2 text-center text-sm font-semibold">Cliques</th>
-                  <th className="px-4 py-2 text-center text-sm font-semibold">Taxa</th>
-                  <th className="px-4 py-2 text-center text-sm font-semibold">Último envio</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {data.sent_campaigns.map((campaign: any) => (
-                  <tr
-                    key={campaign.campaign_id}
-                    onClick={() => fetchCampaignClicks(campaign.campaign_id)}
-                    className="hover:bg-indigo-50 cursor-pointer transition-all duration-300"
-                  >
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{campaign.campaign_name}</td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.sends}</td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.clicks}</td>
-                    <td className="px-4 py-3 text-center text-sm font-semibold text-slate-700">
-                      {Number(campaign.click_rate || 0).toFixed(1)}%
-                    </td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-600">
-                      {campaign.last_sent_at
-                        ? new Date(campaign.last_sent_at).toLocaleDateString("pt-BR")
-                        : "-"}
-                    </td>
+          {data.sent_campaigns && data.sent_campaigns.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-sm font-semibold">Campanha</th>
+                    <th className="px-4 py-2 text-center text-sm font-semibold">Envios</th>
+                    <th className="px-4 py-2 text-center text-sm font-semibold">Cliques</th>
+                    <th className="px-4 py-2 text-center text-sm font-semibold">Taxa</th>
+                    <th className="px-4 py-2 text-center text-sm font-semibold">Último envio</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-slate-500">Nenhuma campanha enviada para o departamento.</p>
-        )}
-      </div>
+                </thead>
+                <tbody className="divide-y">
+                  {data.sent_campaigns.map((campaign: any) => (
+                    <tr
+                      key={campaign.campaign_id}
+                      onClick={() => fetchCampaignClicks(campaign.campaign_id)}
+                      className="hover:bg-indigo-50 cursor-pointer transition-all duration-300"
+                    >
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-900">{campaign.campaign_name}</td>
+                      <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.sends}</td>
+                      <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.clicks}</td>
+                      <td className="px-4 py-3 text-center text-sm font-semibold text-slate-700">
+                        {Number(campaign.click_rate || 0).toFixed(1)}%
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm text-slate-600">
+                        {campaign.last_sent_at
+                          ? new Date(campaign.last_sent_at).toLocaleDateString("pt-BR")
+                          : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-slate-500">Nenhuma campanha enviada para o departamento.</p>
+          )}
+        </div>
+      )}
 
       {/* Campanhas Recentes */}
       {data.recent_campaigns && data.recent_campaigns.length > 0 && (

@@ -59,7 +59,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
   ];
 
   const pieSegments = useMemo(() => {
-    const source = metrics.department_stats;
+    const source = metrics.department_stats.filter((dept) => dept.clicks > 0);
 
     if (source.length === 0) {
       return [] as Array<{
@@ -79,19 +79,8 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
       totalClicks > 0 ? (dept.clicks / totalClicks) * 100 : 0
     );
 
-    const chartPercentages = (() => {
-      if (totalClicks <= 0) {
-        return source.map(() => 100 / source.length);
-      }
-
-      const minVisibleSlice = 0.8;
-      const baseVisual = source.map((dept, idx) =>
-        dept.clicks > 0 ? actualPercentages[idx] : minVisibleSlice
-      );
-      const baseTotal = baseVisual.reduce((sum, value) => sum + value, 0);
-
-      return baseVisual.map((value) => (value / baseTotal) * 100);
-    })();
+    const chartPercentages =
+      totalClicks > 0 ? actualPercentages : source.map(() => 100 / source.length);
 
     let accumulated = 0;
 
