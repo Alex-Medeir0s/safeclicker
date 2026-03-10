@@ -275,18 +275,26 @@ def track_click(token: str, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Token inválido")
 
     # Marca como aberto
-    row.opened = True
-    row.opened_at = datetime.utcnow()
-    db.commit()
+    if not row.opened:
+        row.opened = True
+        row.opened_at = datetime.utcnow()
 
-    # Registra evento de clique
-    click_event = ClickEvent(
-        campaign_send_id=row.id,
-        link_url=str(request.url),
-        ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent", ""),
+    # Registra somente o primeiro clique por envio
+    existing_click = (
+        db.query(ClickEvent)
+        .filter(ClickEvent.campaign_send_id == row.id)
+        .first()
     )
-    db.add(click_event)
+
+    if not existing_click:
+        click_event = ClickEvent(
+            campaign_send_id=row.id,
+            link_url=str(request.url),
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent", ""),
+        )
+        db.add(click_event)
+
     db.commit()
 
     frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")

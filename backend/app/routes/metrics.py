@@ -151,7 +151,12 @@ async def get_dashboard_metrics(
                 )
             ).label("sends"),
             func.count(
-                case((Campaign.id.isnot(None), ClickEvent.id), else_=None)
+                func.distinct(
+                    case(
+                        ((Campaign.id.isnot(None)) & (ClickEvent.id.isnot(None)), CampaignSend.id),
+                        else_=None,
+                    )
+                )
             ).label("clicks")
         ).outerjoin(
             User, Department.id == User.department_id
@@ -171,7 +176,12 @@ async def get_dashboard_metrics(
                 )
             ).label("sends"),
             func.count(
-                case((Campaign.id.isnot(None), ClickEvent.id), else_=None)
+                func.distinct(
+                    case(
+                        ((Campaign.id.isnot(None)) & (ClickEvent.id.isnot(None)), CampaignSend.id),
+                        else_=None,
+                    )
+                )
             ).label("clicks")
         ).filter(
             Department.id == current_user.department_id
@@ -217,7 +227,10 @@ async def get_dashboard_metrics(
 
         clicks_by_user = (
             apply_scope(
-                db.query(CampaignSend.user_id, func.count(ClickEvent.id).label("clicks"))
+                db.query(
+                    CampaignSend.user_id,
+                    func.count(func.distinct(CampaignSend.id)).label("clicks"),
+                )
                 .join(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id)
                 .join(Campaign, CampaignSend.campaign_id == Campaign.id),
                 CampaignSend,
@@ -327,8 +340,8 @@ async def get_dashboard_metrics(
         )
         
         clicks_count = (
-            db.query(ClickEvent)
-            .join(CampaignSend, ClickEvent.campaign_send_id == CampaignSend.id)
+            db.query(func.count(func.distinct(CampaignSend.id)))
+            .join(ClickEvent, ClickEvent.campaign_send_id == CampaignSend.id)
             .filter(CampaignSend.campaign_id == campaign_id)
         )
         
@@ -340,7 +353,7 @@ async def get_dashboard_metrics(
         elif current_user.role == UserRole.COLABORADOR:
             clicks_count = clicks_count.filter(CampaignSend.user_id == current_user.id)
         
-        clicks_count = clicks_count.count()
+        clicks_count = clicks_count.scalar() or 0
         
         recent_campaigns.append(
             RecentCampaign(
@@ -395,8 +408,8 @@ async def get_campaign_clicks(
     clicks_query = db.query(
         User.full_name,
         User.email,
-        ClickEvent.created_at,
-        ClickEvent.ip_address
+        func.max(ClickEvent.created_at).label("clicked_at"),
+        func.max(ClickEvent.ip_address).label("ip_address"),
     ).join(
         CampaignSend, User.id == CampaignSend.user_id
     ).join(
@@ -411,8 +424,10 @@ async def get_campaign_clicks(
         clicks_query = clicks_query.filter(User.department_id == current_user.department_id)
     elif current_user.role == UserRole.COLABORADOR:
         clicks_query = clicks_query.filter(User.id == current_user.id)
+
+    clicks_query = clicks_query.group_by(CampaignSend.id, User.full_name, User.email)
     
-    clicks_raw = clicks_query.order_by(ClickEvent.created_at.desc()).all()
+    clicks_raw = clicks_query.order_by(func.max(ClickEvent.created_at).desc()).all()
     
     # Total de envios com scope
     sends_query = apply_scope(db.query(CampaignSend), CampaignSend, current_user)
@@ -422,7 +437,7 @@ async def get_campaign_clicks(
         ClickDetail(
             full_name=row.full_name or "Desconhecido",
             email=row.email,
-            clicked_at=row.created_at,
+            clicked_at=row.clicked_at,
             ip_address=row.ip_address
         )
         for row in clicks_raw
