@@ -163,14 +163,13 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
 
     const sends = Math.max(selectedDeptData.sends || 0, 0);
     const clicks = Math.max(selectedDeptData.clicks || 0, 0);
-    const total = sends + clicks;
+    const clicksForChart = Math.min(clicks, sends);
 
-    if (total === 0) {
+    if (sends === 0) {
       return {
         sends,
         clicks,
-        total,
-        sendsPercentage: 0,
+        clicksForChart,
         clicksPercentage: 0,
       };
     }
@@ -178,17 +177,42 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
     return {
       sends,
       clicks,
-      total,
-      sendsPercentage: (sends / total) * 100,
-      clicksPercentage: (clicks / total) * 100,
+      clicksForChart,
+      clicksPercentage: (clicksForChart / sends) * 100,
     };
   }, [selectedDeptData]);
 
   const departmentPieGradient = useMemo(() => {
-    if (!departmentChartData || departmentChartData.total <= 0) return "";
+    if (!departmentChartData || departmentChartData.sends <= 0) return "";
 
-    return `conic-gradient(var(--color-blue-500) 0% ${departmentChartData.sendsPercentage}%, var(--color-emerald-500) ${departmentChartData.sendsPercentage}% 100%)`;
+    return `conic-gradient(var(--color-emerald-500) 0% ${departmentChartData.clicksPercentage}%, var(--color-slate-200) ${departmentChartData.clicksPercentage}% 100%)`;
   }, [departmentChartData]);
+
+  const pieLegendItems = useMemo(() => {
+    if (selectedDepartment === GENERAL_DEPARTMENT_OPTION) {
+      return generalPieSegments.map((segment) => ({
+        label: segment.department,
+        color: segment.color,
+        value: `${segment.percentage.toFixed(1)}%`,
+      }));
+    }
+
+    if (!departmentChartData || departmentChartData.sends <= 0) {
+      return [] as Array<{ label: string; color?: string; value: string }>;
+    }
+
+    return [
+      {
+        label: "Emails enviados",
+        value: `${departmentChartData.sends}`,
+      },
+      {
+        label: "Cliques",
+        color: "var(--color-emerald-500)",
+        value: `${departmentChartData.clicks} (${departmentChartData.clicksPercentage.toFixed(1)}%)`,
+      },
+    ];
+  }, [selectedDepartment, generalPieSegments, departmentChartData]);
 
   useEffect(() => {
     if (!hasMountedRef.current) {
@@ -244,7 +268,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
 
         {metrics.department_stats.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-4">
               {selectedDepartment === GENERAL_DEPARTMENT_OPTION ? (
                 generalPieSegments.length > 0 ? (
                   <div
@@ -254,19 +278,13 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                     {isPieRefreshing && (
                       <span className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
                     )}
-                    <div className="absolute inset-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-center px-3">
-                      <div>
-                        <p className="text-xs text-slate-500">Envios / Cliques</p>
-                        <p className="text-sm font-bold text-slate-900">{generalTotals.sends} / {generalTotals.clicks}</p>
-                      </div>
-                    </div>
                   </div>
                 ) : (
                   <div className="w-64 h-64 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6">
                     <p className="text-sm text-slate-500">Sem cliques para gerar o gráfico geral.</p>
                   </div>
                 )
-              ) : departmentChartData && departmentChartData.total > 0 ? (
+              ) : departmentChartData && departmentChartData.sends > 0 ? (
                 <div
                   className={`relative w-64 h-64 rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
                   style={{ background: departmentPieGradient }}
@@ -274,18 +292,32 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                   {isPieRefreshing && (
                     <span className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
                   )}
-                  <div className="absolute inset-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-center px-3">
-                    <div>
-                      <p className="text-xs text-slate-500">Envios / Cliques</p>
-                      <p className="text-sm font-bold text-slate-900">
-                        {departmentChartData.sends} / {departmentChartData.clicks}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               ) : (
                 <div className="w-64 h-64 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6">
                   <p className="text-sm text-slate-500">Sem dados de envios e cliques para o departamento.</p>
+                </div>
+              )}
+
+              {pieLegendItems.length > 0 && (
+                <div className="w-full max-w-md flex flex-wrap justify-center gap-2">
+                  {pieLegendItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-sm"
+                    >
+                      {item.color ? (
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                      ) : (
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-slate-300 bg-slate-100" />
+                      )}
+                      <span className="font-medium text-slate-700">{item.label}</span>
+                      <span className="font-semibold text-slate-900">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -398,28 +430,6 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                 </div>
               ) : null}
 
-              {selectedDepartment !== GENERAL_DEPARTMENT_OPTION && departmentChartData && departmentChartData.total > 0 && (
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="flex items-center gap-2 text-slate-700">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: "var(--color-blue-500)" }}
-                    />
-                    <span>
-                      Envios: {departmentChartData.sends} ({departmentChartData.sendsPercentage.toFixed(1)}%)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-700">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: "var(--color-emerald-500)" }}
-                    />
-                    <span>
-                      Cliques: {departmentChartData.clicks} ({departmentChartData.clicksPercentage.toFixed(1)}%)
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         ) : (
