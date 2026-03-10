@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StatCard } from "@/components/StatCard";
 import { FiTarget, FiCheckCircle, FiUsers, FiZap } from "react-icons/fi";
 
@@ -39,6 +39,8 @@ interface DashboardTIProps {
 export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
   const GENERAL_DEPARTMENT_OPTION = "__GERAL__";
   const [selectedDepartment, setSelectedDepartment] = useState<string>(GENERAL_DEPARTMENT_OPTION);
+  const [isPieRefreshing, setIsPieRefreshing] = useState(false);
+  const hasMountedRef = useRef(false);
 
   const getClickRateColor = (rate: number) => {
     const normalizedRate = Math.max(0, Math.min(100, rate));
@@ -188,6 +190,20 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
     return `conic-gradient(var(--color-blue-500) 0% ${departmentChartData.sendsPercentage}%, var(--color-emerald-500) ${departmentChartData.sendsPercentage}% 100%)`;
   }, [departmentChartData]);
 
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    setIsPieRefreshing(true);
+    const timeoutId = window.setTimeout(() => {
+      setIsPieRefreshing(false);
+    }, 1200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [metrics]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -231,7 +247,13 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
             <div className="flex justify-center">
               {selectedDepartment === GENERAL_DEPARTMENT_OPTION ? (
                 generalPieSegments.length > 0 ? (
-                  <div className="relative w-64 h-64 rounded-full" style={{ background: generalPieGradient }}>
+                  <div
+                    className={`relative w-64 h-64 rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
+                    style={{ background: generalPieGradient }}
+                  >
+                    {isPieRefreshing && (
+                      <span className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+                    )}
                     <div className="absolute inset-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-center px-3">
                       <div>
                         <p className="text-xs text-slate-500">Envios / Cliques</p>
@@ -245,7 +267,13 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                   </div>
                 )
               ) : departmentChartData && departmentChartData.total > 0 ? (
-                <div className="relative w-64 h-64 rounded-full" style={{ background: departmentPieGradient }}>
+                <div
+                  className={`relative w-64 h-64 rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
+                  style={{ background: departmentPieGradient }}
+                >
+                  {isPieRefreshing && (
+                    <span className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+                  )}
                   <div className="absolute inset-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-center px-3">
                     <div>
                       <p className="text-xs text-slate-500">Envios / Cliques</p>

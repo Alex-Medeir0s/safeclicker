@@ -88,6 +88,12 @@ export default function Dashboard() {
     }
 
     fetchMetrics();
+
+    const intervalId = window.setInterval(() => {
+      fetchMetrics();
+    }, 30000);
+
+    return () => window.clearInterval(intervalId);
   }, [router]);
 
   const fetchMetrics = async () => {
