@@ -8,7 +8,7 @@ class ClickEvent(Base):
     __tablename__ = "click_events"
 
     id = Column(Integer, primary_key=True, index=True)
-    campaign_send_id = Column(Integer, ForeignKey("campaign_sends.id"))
+    campaign_send_id = Column(Integer, ForeignKey("campaign_sends.id", ondelete="CASCADE"))
     link_url = Column(Text)
     clicked_at = Column(DateTime, default=datetime.utcnow)
     ip_address = Column(String, nullable=True)

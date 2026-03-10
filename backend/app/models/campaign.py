@@ -27,7 +27,12 @@ class Campaign(Base):
 
     template = relationship("Template", back_populates="campaigns")
     created_by_user = relationship("User", back_populates="campaigns")
-    campaign_sends = relationship("CampaignSend", back_populates="campaign")
+    campaign_sends = relationship(
+        "CampaignSend",
+        back_populates="campaign",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     department = relationship("Department", foreign_keys=[department_id])
     target_department = relationship("Department", foreign_keys=[target_department_id])
 

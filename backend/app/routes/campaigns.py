@@ -5,6 +5,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -133,9 +134,27 @@ async def delete_campaign(
     # Verificar acesso
     if not check_resource_access(campaign, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
-    
-    db.delete(campaign)
-    db.commit()
+
+    try:
+        send_ids_query = (
+            db.query(CampaignSend.id)
+            .filter(CampaignSend.campaign_id == campaign.id)
+        )
+
+        db.query(ClickEvent).filter(
+            ClickEvent.campaign_send_id.in_(send_ids_query)
+        ).delete(synchronize_session=False)
+
+        db.query(CampaignSend).filter(
+            CampaignSend.campaign_id == campaign.id
+        ).delete(synchronize_session=False)
+
+        db.delete(campaign)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erro ao excluir campanha")
+
     return {"message": "Campaign deleted"}
 
 

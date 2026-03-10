@@ -8,7 +8,7 @@ class CampaignSend(Base):
     __tablename__ = "campaign_sends"
 
     id = Column(Integer, primary_key=True, index=True)
-    campaign_id = Column(Integer, ForeignKey("campaigns.id"), nullable=False)
+    campaign_id = Column(Integer, ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     token = Column(String, unique=True, index=True)
     recipient_email = Column(String, index=True)
@@ -20,5 +20,10 @@ class CampaignSend(Base):
 
     campaign = relationship("Campaign", back_populates="campaign_sends")
     user = relationship("User", back_populates="campaign_sends")
-    click_events = relationship("ClickEvent", back_populates="campaign_send")
+    click_events = relationship(
+        "ClickEvent",
+        back_populates="campaign_send",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 

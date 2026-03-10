@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.access_control import apply_scope
@@ -84,7 +84,9 @@ async def get_dashboard_metrics(
     # Aplicar scope nas queries
     campaigns_query = apply_scope(db.query(Campaign), Campaign, current_user)
     users_query = apply_scope(db.query(User), User, current_user)
-    sends_query = apply_scope(db.query(CampaignSend), CampaignSend, current_user)
+    sends_query = apply_scope(db.query(CampaignSend), CampaignSend, current_user).join(
+        Campaign, CampaignSend.campaign_id == Campaign.id
+    )
     
     # Contar campanhas
     total_campaigns = campaigns_query.count()
@@ -99,6 +101,7 @@ async def get_dashboard_metrics(
     # Clicks com escopo (contagem por envio que recebeu ao menos um clique)
     total_clicks = (
         db.query(func.count(func.distinct(CampaignSend.id)))
+        .join(Campaign, CampaignSend.campaign_id == Campaign.id)
         .join(ClickEvent, ClickEvent.campaign_send_id == CampaignSend.id)
         .join(User, CampaignSend.user_id == User.id)
     )
@@ -122,6 +125,7 @@ async def get_dashboard_metrics(
         # Contar campanhas que têm usuários do departamento do gestor
         department_campaigns = (
             db.query(func.count(func.distinct(CampaignSend.campaign_id)))
+            .join(Campaign, CampaignSend.campaign_id == Campaign.id)
             .join(User, CampaignSend.user_id == User.id)
             .filter(User.department_id == current_user.department_id)
             .scalar() or 0
@@ -131,26 +135,42 @@ async def get_dashboard_metrics(
     if current_user.role == UserRole.TI:
         dept_stats_raw = db.query(
             Department.name,
-            func.count(func.distinct(CampaignSend.id)).label("sends"),
-            func.count(ClickEvent.id).label("clicks")
+            func.count(
+                func.distinct(
+                    case((Campaign.id.isnot(None), CampaignSend.id), else_=None)
+                )
+            ).label("sends"),
+            func.count(
+                case((Campaign.id.isnot(None), ClickEvent.id), else_=None)
+            ).label("clicks")
         ).outerjoin(
             User, Department.id == User.department_id
         ).outerjoin(
             CampaignSend, User.id == CampaignSend.user_id
+        ).outerjoin(
+            Campaign, CampaignSend.campaign_id == Campaign.id
         ).outerjoin(
             ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
         ).group_by(Department.name).all()
     elif current_user.role == UserRole.GESTOR and current_user.department_id:
         dept_stats_raw = db.query(
             Department.name,
-            func.count(func.distinct(CampaignSend.id)).label("sends"),
-            func.count(ClickEvent.id).label("clicks")
+            func.count(
+                func.distinct(
+                    case((Campaign.id.isnot(None), CampaignSend.id), else_=None)
+                )
+            ).label("sends"),
+            func.count(
+                case((Campaign.id.isnot(None), ClickEvent.id), else_=None)
+            ).label("clicks")
         ).filter(
             Department.id == current_user.department_id
         ).outerjoin(
             User, Department.id == User.department_id
         ).outerjoin(
             CampaignSend, User.id == CampaignSend.user_id
+        ).outerjoin(
+            Campaign, CampaignSend.campaign_id == Campaign.id
         ).outerjoin(
             ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id
         ).group_by(Department.name).all()
@@ -180,6 +200,7 @@ async def get_dashboard_metrics(
                 CampaignSend,
                 current_user,
             )
+            .join(Campaign, CampaignSend.campaign_id == Campaign.id)
             .group_by(CampaignSend.user_id)
             .all()
         )
@@ -187,7 +208,8 @@ async def get_dashboard_metrics(
         clicks_by_user = (
             apply_scope(
                 db.query(CampaignSend.user_id, func.count(ClickEvent.id).label("clicks"))
-                .join(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id),
+                .join(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id)
+                .join(Campaign, CampaignSend.campaign_id == Campaign.id),
                 CampaignSend,
                 current_user,
             )
