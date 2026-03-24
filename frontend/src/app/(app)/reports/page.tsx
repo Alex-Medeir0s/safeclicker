@@ -159,8 +159,23 @@ export default function Reports() {
       const companyName = localStorage.getItem("companyName") || "SafeClicker";
       const generatedAt = new Date().toLocaleString("pt-BR");
 
-      const tableHeadStyles = { fillColor: [234, 234, 234], textColor: [17, 24, 39], fontStyle: "bold" };
-      const tableStyles = { fontSize: 10, textColor: [15, 23, 42], cellPadding: 6, halign: "center" as const };
+      const tableHeadStyles = {
+        fillColor: [234, 234, 234],
+        textColor: [17, 24, 39],
+        fontStyle: "bold",
+        halign: "center" as const,
+        valign: "middle" as const,
+      };
+      const tableStyles = {
+        fontSize: 10,
+        textColor: [15, 23, 42],
+        cellPadding: 6,
+        halign: "center" as const,
+        valign: "middle" as const,
+        overflow: "linebreak" as const,
+        lineColor: [226, 232, 240] as [number, number, number],
+        lineWidth: 0.5,
+      };
       const tableAltRowStyles = { fillColor: [247, 247, 247] };
 
       const formatStatusForPdf = (status?: string) => {
@@ -285,10 +300,6 @@ export default function Reports() {
           styles: tableStyles,
           headStyles: tableHeadStyles,
           alternateRowStyles: tableAltRowStyles,
-          columnStyles: {
-            0: { halign: "left" },
-            4: { halign: "right" },
-          },
           didParseCell: (hookData) => {
             if (hookData.section === "body" && hookData.column.index === 1) {
               const raw = String(hookData.cell.raw || "").trim().toLowerCase();
@@ -325,10 +336,6 @@ export default function Reports() {
           styles: tableStyles,
           headStyles: tableHeadStyles,
           alternateRowStyles: tableAltRowStyles,
-          columnStyles: {
-            0: { halign: "left" },
-            4: { halign: "right" },
-          },
         });
         currentY = (doc as any).lastAutoTable?.finalY || currentY + 110;
       }
@@ -388,11 +395,6 @@ export default function Reports() {
             styles: { ...tableStyles, fontSize: 8 },
             headStyles: tableHeadStyles,
             alternateRowStyles: tableAltRowStyles,
-            columnStyles: {
-              0: { halign: "left" },
-              1: { halign: "left" },
-              5: { halign: "right" },
-            },
           });
 
           currentY = (doc as any).lastAutoTable?.finalY || currentY + 56;

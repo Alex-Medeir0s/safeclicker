@@ -356,7 +356,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
               isMonitorMode ? "items-center text-center pt-28" : "sm:flex-row sm:items-center sm:justify-between"
             }`}
           >
-            <h2 className="text-xl font-bold text-slate-900">Desempenho por Departamento (Geral)</h2>
+            <h2 className="text-xl font-bold text-slate-900">Desempenho por Departamento</h2>
             {!isMonitorMode && (
               <div className="flex items-center gap-2 self-start sm:self-auto">
                 <button
@@ -397,12 +397,51 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
 
           {metrics.department_stats.length > 0 ? (
             <div className={`grid grid-cols-1 ${isMonitorMode ? "xl:grid-cols-2 gap-6 items-start" : "lg:grid-cols-2 gap-8 items-center"}`}>
-            <div className="flex flex-col items-center gap-4">
-              {selectedDepartment === GENERAL_DEPARTMENT_OPTION ? (
-                generalPieSegments.length > 0 ? (
+            <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-start gap-4 sm:gap-6">
+              {pieLegendItems.length > 0 && (
+                <div className="w-full sm:w-auto flex flex-col gap-2 order-1 items-start">
+                  {pieLegendItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        {item.color ? (
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: item.color }}
+                          />
+                        ) : (
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-slate-300 bg-slate-100" />
+                        )}
+                        <span className="font-medium text-slate-700">{item.label}</span>
+                      </div>
+                      <span className="font-semibold text-slate-900">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="order-2">
+                {selectedDepartment === GENERAL_DEPARTMENT_OPTION ? (
+                  generalPieSegments.length > 0 ? (
+                    <div
+                      className={`relative ${pieSizeClass} rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
+                      style={{ background: generalPieGradient }}
+                    >
+                      {isPieRefreshing && (
+                        <span className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className={`${pieSizeClass} rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6`}>
+                      <p className="text-sm text-slate-500">Sem cliques para gerar o gráfico geral.</p>
+                    </div>
+                  )
+                ) : departmentChartData && departmentChartData.sends > 0 ? (
                   <div
                     className={`relative ${pieSizeClass} rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
-                    style={{ background: generalPieGradient }}
+                    style={{ background: departmentPieGradient }}
                   >
                     {isPieRefreshing && (
                       <span className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
@@ -410,45 +449,10 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                   </div>
                 ) : (
                   <div className={`${pieSizeClass} rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6`}>
-                    <p className="text-sm text-slate-500">Sem cliques para gerar o gráfico geral.</p>
+                    <p className="text-sm text-slate-500">Sem dados de envios e cliques para o departamento.</p>
                   </div>
-                )
-              ) : departmentChartData && departmentChartData.sends > 0 ? (
-                <div
-                  className={`relative ${pieSizeClass} rounded-full transition-transform duration-500 ${isPieRefreshing ? "animate-pulse scale-105" : "scale-100"}`}
-                  style={{ background: departmentPieGradient }}
-                >
-                  {isPieRefreshing && (
-                    <span className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-                  )}
-                </div>
-              ) : (
-                <div className={`${pieSizeClass} rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6`}>
-                  <p className="text-sm text-slate-500">Sem dados de envios e cliques para o departamento.</p>
-                </div>
-              )}
-
-              {pieLegendItems.length > 0 && (
-                <div className="w-full max-w-md flex flex-wrap justify-center gap-2">
-                  {pieLegendItems.map((item) => (
-                    <div
-                      key={item.label}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-sm"
-                    >
-                      {item.color ? (
-                        <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: item.color }}
-                        />
-                      ) : (
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0 border border-slate-300 bg-slate-100" />
-                      )}
-                      <span className="font-medium text-slate-700">{item.label}</span>
-                      <span className="font-semibold text-slate-900">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             <div className="space-y-3 w-full">
