@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { StatCard } from "@/components/StatCard";
 import { FiTarget, FiMail, FiUsers, FiZap, FiCheckCircle } from "react-icons/fi";
 
@@ -53,9 +54,32 @@ interface DashboardGestorProps {
 }
 
 export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorProps) {
+  const [campaignFilter, setCampaignFilter] = useState("");
+
   const deptClickRate =
     (metrics.department_stats && metrics.department_stats[0]?.rate) ??
     metrics.summary.click_rate;
+
+  const filteredSentCampaigns = useMemo(() => {
+    const sentCampaigns = metrics.sent_campaigns ?? [];
+    const normalizedFilter = campaignFilter.trim().toLowerCase();
+
+    if (!normalizedFilter) {
+      return sentCampaigns;
+    }
+
+    const exactMatches = sentCampaigns.filter(
+      (campaign) => campaign.campaign_name.trim().toLowerCase() === normalizedFilter
+    );
+
+    if (exactMatches.length > 0) {
+      return exactMatches;
+    }
+
+    return sentCampaigns.filter((campaign) =>
+      campaign.campaign_name.toLowerCase().includes(normalizedFilter)
+    );
+  }, [metrics.sent_campaigns, campaignFilter]);
 
   const getClickRateColor = (rate: number) => {
     const normalizedRate = Math.max(0, Math.min(100, rate));
@@ -136,7 +160,24 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
       )}
 
       <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
-        <h2 className="text-xl font-bold mb-4 text-slate-900">Campanhas Enviadas para o Departamento</h2>
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-xl font-bold text-slate-900">Campanhas Enviadas para o Departamento</h2>
+          <div className="w-full md:w-80">
+            <input
+              type="text"
+              value={campaignFilter}
+              onChange={(e) => setCampaignFilter(e.target.value)}
+              placeholder="Filtrar campanha por nome"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        {(metrics.sent_campaigns?.length ?? 0) > 0 && (
+          <p className="mb-3 text-xs text-slate-500">
+            Exibindo {filteredSentCampaigns.length} de {metrics.sent_campaigns?.length} campanhas.
+          </p>
+        )}
 
         {metrics.sent_campaigns && metrics.sent_campaigns.length > 0 ? (
           <div className="overflow-x-auto">
@@ -151,7 +192,7 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
                 </tr>
               </thead>
               <tbody>
-                {metrics.sent_campaigns.map((campaign) => (
+                {filteredSentCampaigns.map((campaign) => (
                   <tr
                     key={campaign.campaign_id}
                     onClick={() => onCampaignClick(campaign.campaign_id)}
@@ -173,6 +214,10 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
           </div>
         ) : (
           <p className="text-slate-500">Nenhuma campanha enviada para o seu departamento.</p>
+        )}
+
+        {metrics.sent_campaigns && metrics.sent_campaigns.length > 0 && filteredSentCampaigns.length === 0 && (
+          <p className="text-slate-500 mt-3">Nenhuma campanha encontrada para o filtro informado.</p>
         )}
       </div>
     </div>
