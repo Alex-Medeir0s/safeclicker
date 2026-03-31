@@ -435,7 +435,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                     </div>
                   ) : (
                     <div className={`${pieSizeClass} rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6`}>
-                      <p className="text-sm text-slate-500">Sem cliques para gerar o gráfico geral.</p>
+                      <p className="text-sm text-slate-500">Sem cliques para gerar o gráfico.</p>
                     </div>
                   )
                 ) : departmentChartData && departmentChartData.sends > 0 ? (
@@ -449,7 +449,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                   </div>
                 ) : (
                   <div className={`${pieSizeClass} rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-center px-6`}>
-                    <p className="text-sm text-slate-500">Sem dados de envios e cliques para o departamento.</p>
+                    <p className="text-sm text-slate-500">Sem cliques para gerar o gráfico.</p>
                   </div>
                 )}
               </div>
@@ -535,11 +535,7 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                         </tbody>
                       </table>
                     </div>
-                  ) : (
-                    <p className="mt-3 text-xs text-slate-500">
-                      Nenhum departamento com cliques para listar no gráfico.
-                    </p>
-                  )}
+                  ) : null}
                 </div>
               ) : selectedDeptData ? (
                 <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">

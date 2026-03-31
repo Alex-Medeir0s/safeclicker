@@ -144,12 +144,20 @@ async def update_campaign(
     # Verificar acesso
     if not check_resource_access(campaign, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
-    
-    for key, value in campaign_update.dict(exclude_unset=True).items():
-        setattr(campaign, key, value)
-    
-    db.commit()
-    db.refresh(campaign)
+
+    try:
+        # Ao atualizar a campanha, limpa os dados gerados previamente.
+        clear_campaign_generated_data(db, campaign.id)
+
+        for key, value in campaign_update.dict(exclude_unset=True).items():
+            setattr(campaign, key, value)
+
+        db.commit()
+        db.refresh(campaign)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erro ao atualizar campanha")
+
     return campaign
 
 
@@ -192,10 +200,7 @@ async def deactivate_campaign(
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     try:
-        clear_campaign_generated_data(db, campaign.id)
         campaign.status = "disabled"
-        campaign.start_date = None
-        campaign.end_date = None
         db.commit()
         db.refresh(campaign)
     except SQLAlchemyError:
@@ -205,7 +210,7 @@ async def deactivate_campaign(
     return {
         "campaign_id": campaign.id,
         "status": campaign.status,
-        "message": "Campanha desativada e dados gerados removidos"
+        "message": "Campanha desativada"
     }
 
 
@@ -328,6 +333,10 @@ def track_click(token: str, request: Request, db: Session = Depends(get_db)):
     if not row:
         raise HTTPException(status_code=404, detail="Token inválido")
 
+    if row.campaign and row.campaign.status == "disabled":
+        frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+        return RedirectResponse(url=f"{frontend}/click-alert?token={token}")
+
     # Marca como aberto
     if not row.opened:
         row.opened = True
@@ -368,6 +377,9 @@ def complete_training(
     send_row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
     if not send_row:
         raise HTTPException(status_code=404, detail="Token inválido")
+
+    if send_row.campaign and send_row.campaign.status == "disabled":
+        raise HTTPException(status_code=400, detail="Campanha desativada não registra treinamento")
 
     existing_completion = (
         db.query(TrainingCompletion)
