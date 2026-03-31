@@ -160,8 +160,8 @@ export default function Campaigns() {
     setEditingCampaign(campaign);
     
     // Extrair IDs dos departamentos alvo
-    const deptIds = campaign.target_departments 
-      ? campaign.target_departments.split(",").map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+    const deptIds = campaign.target_audience
+      ? campaign.target_audience.split(",").map(id => parseInt(id.trim())).filter(id => !isNaN(id))
       : (campaign.target_department_id ? [campaign.target_department_id] : []);
     setSelectedDeptIds(deptIds);
     
@@ -174,7 +174,7 @@ export default function Campaigns() {
           html_content: templateResponse.data.body || "",
           complexity: campaign.complexity,
           trigger: "urgencia",
-          target_departments: campaign.target_departments || "",
+          target_departments: campaign.target_audience || campaign.target_departments || "",
           template_id: campaign.template_id,
         });
       } else {
@@ -183,7 +183,7 @@ export default function Campaigns() {
           html_content: "",
           complexity: campaign.complexity,
           trigger: "urgencia",
-          target_departments: campaign.target_departments || "",
+          target_departments: campaign.target_audience || campaign.target_departments || "",
           template_id: 1,
         });
       }
@@ -194,12 +194,22 @@ export default function Campaigns() {
         html_content: "",
         complexity: campaign.complexity,
         trigger: "urgencia",
-        target_departments: campaign.target_departments || "",
+        target_departments: campaign.target_audience || campaign.target_departments || "",
         template_id: campaign.template_id || 1,
       });
     }
     
     setShowForm(true);
+  };
+
+  const handlePreviewFormHtml = () => {
+    const html = formData.html_content?.trim();
+    if (!html) {
+      alert("Adicione conteúdo HTML para visualizar.");
+      return;
+    }
+
+    setSelectedHtml(html);
   };
 
   return (
@@ -243,7 +253,16 @@ export default function Campaigns() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Conteúdo HTML</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium">Conteúdo HTML</label>
+                <button
+                  type="button"
+                  onClick={handlePreviewFormHtml}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-slate-100 text-slate-700 hover:bg-blue-600 hover:border-blue-600 hover:text-white transition-all duration-300 flex items-center gap-1"
+                >
+                  <FiEye className="w-3.5 h-3.5" /> Visualizar
+                </button>
+              </div>
               <textarea
                 value={formData.html_content}
                 onChange={(e) => setFormData({ ...formData, html_content: e.target.value })}
@@ -424,6 +443,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [sending, setSending] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   // Função para obter nomes dos departamentos selecionados
   const getDepartmentNames = () => {
@@ -478,6 +498,24 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
       alert("Erro ao deletar campanha");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!confirm("Tem certeza que deseja desativar esta campanha?\n\nIsso mudará o status para desativado e removerá envios, cliques e treinamentos gerados por ela.")) {
+      return;
+    }
+
+    setDeactivating(true);
+    try {
+      await api.post(`/campaigns/${campaign.id}/deactivate`);
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Erro ao desativar campanha:", error);
+      const errorMsg = error.response?.data?.detail || "Erro ao desativar campanha";
+      alert(`❌ Erro: ${typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg)}`);
+    } finally {
+      setDeactivating(false);
     }
   };
 
@@ -570,7 +608,17 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
         <div className="mb-4">
           <div className="flex items-start justify-between mb-2">
             <h3 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{campaign.name}</h3>
-            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">#{campaign.id}</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleViewHtml}
+                disabled={loading}
+                title="Visualizar HTML"
+                className="w-8 h-8 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-blue-600 hover:border-blue-600 hover:text-white disabled:opacity-50 disabled:hover:bg-white disabled:hover:border-slate-300 disabled:hover:text-slate-600 transition-all duration-300 flex items-center justify-center"
+              >
+                {loading ? <FiLoader className="w-4 h-4 animate-spin" /> : <FiEye className="w-4 h-4" />}
+              </button>
+              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">#{campaign.id}</span>
+            </div>
           </div>
         </div>
 
@@ -578,11 +626,17 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
           <div className="flex justify-between items-center p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl">
             <span className="text-sm text-slate-600 font-medium flex items-center gap-2"><FiCheck className="w-4 h-4" /> Status:</span>
             <span className={`text-sm font-bold px-3 py-1 rounded-lg shadow-sm ${
-              campaign.status === "draft" 
-                ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white" 
-                : "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
+              campaign.status === "draft"
+                ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white"
+                : campaign.status === "disabled"
+                  ? "bg-gradient-to-r from-slate-500 to-slate-600 text-white"
+                  : "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
             }`}>
-              {campaign.status === "draft" ? "Rascunho" : "Enviada"}
+              {campaign.status === "draft"
+                ? "Rascunho"
+                : campaign.status === "disabled"
+                  ? "Desativada"
+                  : "Enviada"}
             </span>
           </div>
           <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -605,17 +659,17 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
 
         <div className="flex gap-2">
           <button 
-            onClick={handleViewHtml}
-            disabled={loading}
+            onClick={handleDeactivate}
+            disabled={deactivating || campaign.status === "disabled"}
             className="flex-1 bg-slate-100 text-slate-700 border border-slate-300 hover:bg-blue-600 hover:border-blue-600 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-100 disabled:hover:text-slate-700 disabled:hover:border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
           >
-            {loading ? <><FiLoader className="w-4 h-4 animate-spin" /> Carregando...</> : <><FiEye className="w-4 h-4" /> Visualizar</>}
+            {deactivating ? <><FiLoader className="w-4 h-4 animate-spin" /> Desativando...</> : <><FiX className="w-4 h-4" /> Desativar</>}
           </button>
           <button 
             onClick={handleSend}
             disabled={campaign.status !== "draft" || sending || !campaign.target_department_id}
             className="flex-1 bg-slate-100 text-slate-700 border border-slate-300 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-700 disabled:hover:border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
-            title={!campaign.target_department_id ? "Configure um departamento alvo antes de enviar" : ""}
+            title={!campaign.target_department_id ? "Configure um departamento alvo antes de enviar" : campaign.status === "disabled" ? "Campanha desativada não pode ser enviada" : ""}
           >
             {sending ? <><FiLoader className="w-4 h-4 animate-spin" /> Enviando...</> : campaign.status === "draft" ? <><FiSend className="w-4 h-4" /> Enviar</> : <><FiCheck className="w-4 h-4" /> Enviada</>}
           </button>

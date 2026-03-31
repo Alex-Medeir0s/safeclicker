@@ -337,11 +337,12 @@ async def get_dashboard_metrics(
             Campaign.name,
             Campaign.status,
             func.coalesce(Campaign.start_date, Campaign.created_at).label("start_date"),
+            Campaign.updated_at.label("updated_at"),
         )
         .outerjoin(CampaignSend, Campaign.id == CampaignSend.campaign_id)
         .outerjoin(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id)
         .group_by(Campaign.id)
-        .order_by(func.coalesce(Campaign.start_date, Campaign.created_at).desc())
+        .order_by(Campaign.updated_at.desc(), func.coalesce(Campaign.start_date, Campaign.created_at).desc())
         .limit(5)
         .all()
     )

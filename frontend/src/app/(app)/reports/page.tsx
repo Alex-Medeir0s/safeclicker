@@ -35,6 +35,8 @@ export default function Reports() {
     switch ((status || "").toLowerCase()) {
       case "active":
         return "Ativa";
+      case "disabled":
+        return "Desativada";
       case "completed":
         return "Concluída";
       case "paused":
@@ -177,6 +179,7 @@ export default function Reports() {
         lineWidth: 0.5,
       };
       const tableAltRowStyles = { fillColor: [247, 247, 247] };
+      const indicatorsAccentColor: [number, number, number] = [59, 130, 246];
 
       const formatStatusForPdf = (status?: string) => {
         return formatStatus(status);
@@ -242,7 +245,15 @@ export default function Reports() {
       const cardWidth = (pageWidth - 80 - cardGap * 3) / 4;
       const cardHeight = 58;
 
-      drawMetricCard(40, cardsStartY, cardWidth, cardHeight, "Campanhas", String(deptCampaigns), [59, 130, 246]);
+      drawMetricCard(
+        40,
+        cardsStartY,
+        cardWidth,
+        cardHeight,
+        "Campanhas",
+        String(deptCampaigns),
+        indicatorsAccentColor
+      );
       drawMetricCard(
         40 + (cardWidth + cardGap) * 1,
         cardsStartY,
@@ -250,7 +261,7 @@ export default function Reports() {
         cardHeight,
         "Emails",
         String(totalEmails),
-        [16, 185, 129]
+        indicatorsAccentColor
       );
       drawMetricCard(
         40 + (cardWidth + cardGap) * 2,
@@ -259,7 +270,7 @@ export default function Reports() {
         cardHeight,
         "Usuários",
         String(data.summary.total_users),
-        [99, 102, 241]
+        indicatorsAccentColor
       );
       drawMetricCard(
         40 + (cardWidth + cardGap) * 3,
@@ -268,7 +279,7 @@ export default function Reports() {
         cardHeight,
         "Segurança",
         `${(100 - deptClickRate).toFixed(1)}%`,
-        [34, 197, 94]
+        indicatorsAccentColor
       );
 
       let currentY = cardsStartY + cardHeight + 18;
@@ -276,8 +287,9 @@ export default function Reports() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       doc.setTextColor(71, 85, 105);
+      const totalRegisteredCampaigns = data.summary.total_campaigns ?? 0;
       const activeCampaignsSummary = data.summary.active_campaigns ?? deptCampaigns;
-      const summaryText = `No período analisado, ${activeCampaignsSummary} campanhas foram executadas, com ${totalEmails} emails enviados. A taxa de segurança observada foi de ${(100 - deptClickRate).toFixed(1)}%, indicando que ${deptClickRate.toFixed(1)}% dos usuários clicaram.`;
+      const summaryText = `Atualmente ha, ${totalRegisteredCampaigns} campanha(s) cadastrada(s), e ${activeCampaignsSummary} campanha(s) executada(s), com ${totalEmails} email(s) enviado(s). A taxa de segurança observada foi de ${(100 - deptClickRate).toFixed(1)}%, indicando que ${deptClickRate.toFixed(1)}% dos usuários clicaram.`;
       const summaryLines = doc.splitTextToSize(summaryText, pageWidth - 80);
       doc.text(summaryLines, 40, currentY + 12);
       currentY = currentY + 12 + summaryLines.length * 14 + 8;
@@ -306,6 +318,8 @@ export default function Reports() {
               hookData.cell.styles.fontStyle = "bold";
               if (raw.includes("rascunho")) {
                 hookData.cell.styles.textColor = [107, 114, 128];
+              } else if (raw.includes("desativada")) {
+                hookData.cell.styles.textColor = [71, 85, 105];
               } else if (raw.includes("enviada") || raw.includes("agendada")) {
                 hookData.cell.styles.textColor = [59, 130, 246];
               } else if (raw.includes("ativa")) {
@@ -581,10 +595,12 @@ export default function Reports() {
                         className={`px-3 py-1 rounded-full text-xs font-bold ${
                           campaign.status === "draft"
                             ? "bg-yellow-100 text-yellow-700"
-                            : "bg-green-100 text-green-700"
+                            : campaign.status === "disabled"
+                              ? "bg-slate-100 text-slate-700"
+                              : "bg-green-100 text-green-700"
                         }`}
                       >
-                        {campaign.status === "draft" ? "Rascunho" : "Enviada"}
+                        {formatStatus(campaign.status)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.users}</td>

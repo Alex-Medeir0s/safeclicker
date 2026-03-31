@@ -23,6 +23,26 @@ from app.services.email_service import email_service
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
 
+def clear_campaign_generated_data(db: Session, campaign_id: int):
+    """Remove envios, cliques e treinamentos gerados por uma campanha."""
+    send_ids_query = (
+        db.query(CampaignSend.id)
+        .filter(CampaignSend.campaign_id == campaign_id)
+    )
+
+    db.query(TrainingCompletion).filter(
+        TrainingCompletion.campaign_send_id.in_(send_ids_query)
+    ).delete(synchronize_session=False)
+
+    db.query(ClickEvent).filter(
+        ClickEvent.campaign_send_id.in_(send_ids_query)
+    ).delete(synchronize_session=False)
+
+    db.query(CampaignSend).filter(
+        CampaignSend.campaign_id == campaign_id
+    ).delete(synchronize_session=False)
+
+
 class TrainingCompleteRequest(BaseModel):
     token: str
 
@@ -148,23 +168,7 @@ async def delete_campaign(
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     try:
-        send_ids_query = (
-            db.query(CampaignSend.id)
-            .filter(CampaignSend.campaign_id == campaign.id)
-        )
-
-        db.query(TrainingCompletion).filter(
-            TrainingCompletion.campaign_send_id.in_(send_ids_query)
-        ).delete(synchronize_session=False)
-
-        db.query(ClickEvent).filter(
-            ClickEvent.campaign_send_id.in_(send_ids_query)
-        ).delete(synchronize_session=False)
-
-        db.query(CampaignSend).filter(
-            CampaignSend.campaign_id == campaign.id
-        ).delete(synchronize_session=False)
-
+        clear_campaign_generated_data(db, campaign.id)
         db.delete(campaign)
         db.commit()
     except SQLAlchemyError:
@@ -172,6 +176,37 @@ async def delete_campaign(
         raise HTTPException(status_code=500, detail="Erro ao excluir campanha")
 
     return {"message": "Campaign deleted"}
+
+
+@router.post("/{campaign_id}/deactivate")
+async def deactivate_campaign(
+    campaign_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada")
+
+    if not check_resource_access(campaign, current_user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    try:
+        clear_campaign_generated_data(db, campaign.id)
+        campaign.status = "disabled"
+        campaign.start_date = None
+        campaign.end_date = None
+        db.commit()
+        db.refresh(campaign)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Erro ao desativar campanha")
+
+    return {
+        "campaign_id": campaign.id,
+        "status": campaign.status,
+        "message": "Campanha desativada e dados gerados removidos"
+    }
 
 
 @router.post("/{campaign_id}/send")
@@ -187,6 +222,9 @@ async def send_campaign(
     # Verificar acesso
     if not check_resource_access(campaign, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
+
+    if campaign.status == "disabled":
+        raise HTTPException(status_code=400, detail="Campanha desativada não pode ser enviada")
 
     if not campaign.target_department_id:
         raise HTTPException(status_code=400, detail="Campanha sem departamento alvo definido")
