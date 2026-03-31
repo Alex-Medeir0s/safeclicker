@@ -445,6 +445,11 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
   const [sending, setSending] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
 
+  const actionButtonBaseClass =
+    "w-full h-11 px-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
+
+  const disabledHoverClass = "disabled:hover:bg-slate-100 disabled:hover:text-slate-700 disabled:hover:border-slate-300";
+
   // Função para obter nomes dos departamentos selecionados
   const getDepartmentNames = () => {
     if (!campaign.target_audience) return "Nenhum";
@@ -502,7 +507,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
   };
 
   const handleDeactivate = async () => {
-    if (!confirm("Tem certeza que deseja desativar esta campanha?\n\nIsso mudará o status para desativado e removerá envios, cliques e treinamentos gerados por ela.")) {
+    if (!confirm("Tem certeza que deseja desativar esta campanha?\n\nIsso mudará o status para desativado e impedirá novos registros de cliques e treinamentos.")) {
       return;
     }
 
@@ -657,32 +662,32 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button 
             onClick={handleDeactivate}
             disabled={deactivating || campaign.status === "disabled"}
-            className="flex-1 bg-slate-100 text-slate-700 border border-slate-300 hover:bg-blue-600 hover:border-blue-600 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-100 disabled:hover:text-slate-700 disabled:hover:border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
+            className={`${actionButtonBaseClass} hover:bg-blue-600 hover:border-blue-600 hover:text-white ${disabledHoverClass}`}
           >
             {deactivating ? <><FiLoader className="w-4 h-4 animate-spin" /> Desativando...</> : <><FiX className="w-4 h-4" /> Desativar</>}
           </button>
           <button 
             onClick={handleSend}
             disabled={campaign.status !== "draft" || sending || !campaign.target_department_id}
-            className="flex-1 bg-slate-100 text-slate-700 border border-slate-300 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-700 disabled:hover:border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
+            className={`${actionButtonBaseClass} hover:bg-emerald-600 hover:border-emerald-600 hover:text-white ${disabledHoverClass}`}
             title={!campaign.target_department_id ? "Configure um departamento alvo antes de enviar" : campaign.status === "disabled" ? "Campanha desativada não pode ser enviada" : ""}
           >
             {sending ? <><FiLoader className="w-4 h-4 animate-spin" /> Enviando...</> : campaign.status === "draft" ? <><FiSend className="w-4 h-4" /> Enviar</> : <><FiCheck className="w-4 h-4" /> Enviada</>}
           </button>
           <button 
             onClick={() => onEditCampaign(campaign)}
-            className="flex-1 bg-slate-100 text-slate-700 border border-slate-300 hover:bg-indigo-600 hover:border-indigo-600 hover:text-white py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
+            className={`${actionButtonBaseClass} hover:bg-indigo-600 hover:border-indigo-600 hover:text-white`}
           >
             <FiEdit2 className="w-4 h-4" /> Editar
           </button>
           <button 
             onClick={handleDelete}
             disabled={deleting}
-            className="flex-1 bg-slate-100 text-slate-700 border border-slate-300 hover:bg-red-600 hover:border-red-600 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-100 disabled:hover:text-slate-700 disabled:hover:border-slate-300 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2"
+            className={`${actionButtonBaseClass} hover:bg-red-600 hover:border-red-600 hover:text-white ${disabledHoverClass}`}
           >
             {deleting ? <><FiLoader className="w-4 h-4 animate-spin" /> Deletando...</> : <><FiTrash2 className="w-4 h-4" /> Excluir</>}
           </button>

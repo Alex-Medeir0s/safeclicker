@@ -507,7 +507,6 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                             <th className="px-2 py-2 text-center font-semibold">Envios</th>
                             <th className="px-2 py-2 text-center font-semibold">Cliques</th>
                             <th className="px-2 py-2 text-center font-semibold">Taxa</th>
-                            <th className="px-2 py-2 text-center font-semibold">Participação</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
@@ -526,9 +525,6 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                               <td className="px-2 py-2 text-center text-slate-700">{segment.clicks}</td>
                               <td className={`px-2 py-2 text-center font-semibold ${getClickRateColor(segment.rate)}`}>
                                 {segment.rate.toFixed(1)}%
-                              </td>
-                              <td className="px-2 py-2 text-center text-slate-700">
-                                {segment.percentage.toFixed(1)}%
                               </td>
                             </tr>
                           ))}
