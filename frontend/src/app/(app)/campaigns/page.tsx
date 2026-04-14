@@ -52,8 +52,8 @@ export default function Campaigns() {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
 
-    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return localDate.toISOString().slice(0, 16);
+    const pad = (num: number) => String(num).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
 
   useEffect(() => {
@@ -72,6 +72,12 @@ export default function Campaigns() {
     
     fetchCampaigns();
     fetchDepartments();
+
+    const refreshInterval = window.setInterval(() => {
+      fetchCampaigns();
+    }, 20000);
+
+    return () => window.clearInterval(refreshInterval);
   }, [router]);
 
   const fetchDepartments = async () => {
@@ -121,7 +127,7 @@ export default function Campaigns() {
           target_department_id: targetDepartmentId,
           subject: formData.name,
           html_template: formData.html_content,
-          start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+          start_date: formData.start_date || null,
         });
         setEditingCampaign(null);
         // Recarrega as campanhas após atualizar
@@ -148,7 +154,7 @@ export default function Campaigns() {
           target_department_id: targetDepartmentId,
           subject: formData.name,
           html_template: formData.html_content,
-          start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
+          start_date: formData.start_date || null,
         });
       }
       

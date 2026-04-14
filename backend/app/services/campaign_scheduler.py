@@ -117,7 +117,7 @@ async def send_campaign_now(db: Session, campaign: Campaign) -> dict:
 async def process_due_campaigns() -> None:
     db = SessionLocal()
     try:
-        now = datetime.utcnow()
+        now = datetime.now()
         due_campaigns = (
             db.query(Campaign)
             .filter(
