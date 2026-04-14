@@ -595,6 +595,8 @@ export default function Reports() {
                         className={`px-3 py-1 rounded-full text-xs font-bold ${
                           campaign.status === "draft"
                             ? "bg-yellow-100 text-yellow-700"
+                            : campaign.status === "scheduled"
+                              ? "bg-blue-100 text-blue-700"
                             : campaign.status === "disabled"
                               ? "bg-slate-100 text-slate-700"
                               : "bg-green-100 text-green-700"

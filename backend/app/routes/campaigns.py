@@ -1,5 +1,3 @@
-import os
-import secrets
 from datetime import datetime
 from typing import List
 
@@ -18,7 +16,7 @@ from app.models.click_event import ClickEvent
 from app.models.training_completion import TrainingCompletion
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignRead, CampaignUpdate
-from app.services.email_service import email_service
+from app.services.campaign_scheduler import send_campaign_now
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
@@ -122,6 +120,10 @@ async def create_campaign(
     campaign_data = campaign.dict()
     campaign_data["department_id"] = department_id
     campaign_data["created_by"] = current_user.id
+    if campaign_data.get("start_date"):
+        campaign_data["status"] = "scheduled"
+    else:
+        campaign_data["status"] = campaign_data.get("status") or "draft"
     
     new_campaign = Campaign(**campaign_data)
     db.add(new_campaign)
@@ -151,6 +153,12 @@ async def update_campaign(
 
         for key, value in campaign_update.dict(exclude_unset=True).items():
             setattr(campaign, key, value)
+
+        if campaign.status != "disabled":
+            if campaign.start_date and campaign.status in {"draft", "scheduled"}:
+                campaign.status = "scheduled"
+            elif not campaign.start_date and campaign.status == "scheduled":
+                campaign.status = "draft"
 
         db.commit()
         db.refresh(campaign)
@@ -236,95 +244,7 @@ async def send_campaign(
 
     if not campaign.html_template:
         raise HTTPException(status_code=400, detail="Campanha sem template HTML configurado")
-
-    # Suportar múltiplos departamentos usando target_audience ou target_department_id
-    department_ids = []
-    
-    if campaign.target_audience:
-        # Separar IDs dos departamentos (vem como "1,2,3")
-        try:
-            department_ids = [int(d.strip()) for d in campaign.target_audience.split(",") if d.strip()]
-        except ValueError:
-            # Se não conseguir fazer parse, usar apenas target_department_id
-            department_ids = [campaign.target_department_id]
-    
-    # Se não tiver target_audience, usar target_department_id
-    if not department_ids and campaign.target_department_id:
-        department_ids = [campaign.target_department_id]
-    
-    if not department_ids:
-        raise HTTPException(status_code=400, detail="Nenhum departamento alvo definido")
-
-    # Buscar usuários de TODOS os departamentos selecionados
-    users = (
-        db.query(User)
-        .filter(User.department_id.in_(department_ids), User.is_active == True)
-        .all()
-    )
-
-    if not users:
-        dept_names = ", ".join(str(d) for d in department_ids)
-        raise HTTPException(status_code=400, detail=f"Nenhum usuário ativo nos departamentos {dept_names}")
-
-    base_url = os.getenv("APP_BASE_URL", "http://localhost:8000").rstrip("/")
-
-    sent = 0
-    errors = []
-
-    # Marcar campanha como ativa para aparecer no dashboard
-    campaign.status = "active"
-    db.commit()
-    db.refresh(campaign)
-
-
-    for user in users:
-        token = secrets.token_urlsafe(24)
-
-        send_row = CampaignSend(
-            campaign_id=campaign.id,
-            user_id=user.id,
-            recipient_email=user.email,
-            token=token,
-            sent_at=datetime.utcnow(),
-            opened=False,
-            bounced=False,
-        )
-        db.add(send_row)
-        db.commit()
-        db.refresh(send_row)
-
-        tracking_url = f"{base_url}/campaigns/track/{token}"
-        html = campaign.html_template or ""
-
-        # Substitui variáveis dinâmicas no HTML
-        html = (
-            html.replace("{{tracking_url}}", tracking_url)
-            .replace("{tracking_url}", tracking_url)
-            .replace("{link_rastreamento}", tracking_url)
-            .replace("{nome}", user.full_name or "")
-            .replace("{email}", user.email or "")
-        )
-
-        try:
-            await email_service.send_html(
-                subject=campaign.subject or "Campanha SafeClicker",
-                recipients=[user.email],
-                html=html,
-            )
-            sent += 1
-        except Exception as exc:  # pragma: no cover - external dependency
-            send_row.bounced = True
-            db.commit()
-            errors.append({"email": user.email, "error": str(exc)})
-
-    return {
-        "campaign_id": campaign.id,
-        "recipients": len(users),
-        "departments": department_ids,
-        "sent": sent,
-        "errors": errors,
-        "status": campaign.status,
-    }
+    return await send_campaign_now(db, campaign)
 
 
 @router.get("/track/{token}", include_in_schema=False)

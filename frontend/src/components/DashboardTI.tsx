@@ -575,7 +575,12 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                 className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition"
               >
                 <div>
-                  <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${campaign.status === "scheduled" ? "bg-blue-100 text-blue-700" : campaign.status === "draft" ? "bg-yellow-100 text-yellow-700" : campaign.status === "disabled" ? "bg-slate-100 text-slate-700" : "bg-emerald-100 text-emerald-700"}`}>
+                      {campaign.status === "scheduled" ? "Agendada" : campaign.status === "draft" ? "Rascunho" : campaign.status === "disabled" ? "Desativada" : "Enviada"}
+                    </span>
+                  </div>
                   <p className="text-sm text-slate-600">
                     {new Date(campaign.start_date || "").toLocaleDateString("pt-BR")}
                   </p>

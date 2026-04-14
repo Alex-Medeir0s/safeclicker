@@ -11,6 +11,7 @@ interface Campaign {
   status: string;
   complexity: string;
   trigger?: string;
+  start_date?: string;
   target_departments?: string;
   target_audience?: string;
   target_department_id?: number;
@@ -39,10 +40,21 @@ export default function Campaigns() {
     html_content: "",
     complexity: "basico",
     trigger: "urgencia",
+    start_date: "",
     target_departments: "",
     template_id: 1,
   });
   const [error, setError] = useState("");
+
+  const toDateTimeLocalValue = (value?: string | null) => {
+    if (!value) return "";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+  };
 
   useEffect(() => {
     // Limpar localStorage de departamentos em cache
@@ -109,6 +121,7 @@ export default function Campaigns() {
           target_department_id: targetDepartmentId,
           subject: formData.name,
           html_template: formData.html_content,
+          start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
         });
         setEditingCampaign(null);
         // Recarrega as campanhas após atualizar
@@ -135,6 +148,7 @@ export default function Campaigns() {
           target_department_id: targetDepartmentId,
           subject: formData.name,
           html_template: formData.html_content,
+          start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
         });
       }
       
@@ -143,6 +157,7 @@ export default function Campaigns() {
         html_content: "",
         complexity: "basico", 
         trigger: "urgencia",
+        start_date: "",
         target_departments: "",
         template_id: 1,
       });
@@ -176,6 +191,7 @@ export default function Campaigns() {
           trigger: "urgencia",
           target_departments: campaign.target_audience || campaign.target_departments || "",
           template_id: campaign.template_id,
+          start_date: toDateTimeLocalValue(campaign.start_date),
         });
       } else {
         setFormData({
@@ -185,6 +201,7 @@ export default function Campaigns() {
           trigger: "urgencia",
           target_departments: campaign.target_audience || campaign.target_departments || "",
           template_id: 1,
+          start_date: toDateTimeLocalValue(campaign.start_date),
         });
       }
     } catch (error) {
@@ -196,6 +213,7 @@ export default function Campaigns() {
         trigger: "urgencia",
         target_departments: campaign.target_audience || campaign.target_departments || "",
         template_id: campaign.template_id || 1,
+        start_date: toDateTimeLocalValue(campaign.start_date),
       });
     }
     
@@ -305,6 +323,19 @@ export default function Campaigns() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium mb-2">Agendamento automático</label>
+              <input
+                type="datetime-local"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                className="input w-full"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Opcional. Se informar data e hora, a campanha será enviada automaticamente nesse momento.
+              </p>
+            </div>
+
+            <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-medium">Departamentos Alvo</label>
                 <button
@@ -365,6 +396,16 @@ export default function Campaigns() {
                 onClick={() => {
                   setShowForm(false);
                   setEditingCampaign(null);
+                  setFormData({
+                    name: "",
+                    html_content: "",
+                    complexity: "basico",
+                    trigger: "urgencia",
+                    start_date: "",
+                    target_departments: "",
+                    template_id: 1,
+                  });
+                  setSelectedDeptIds([]);
                 }}
                 className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-8 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 justify-center"
               >
@@ -396,6 +437,7 @@ export default function Campaigns() {
                 onViewHtml={setSelectedHtml}
                 onEditCampaign={handleEditClick}
                 departments={departments}
+                onCampaignChanged={fetchCampaigns}
               />
             </div>
           ))}
@@ -437,7 +479,7 @@ export default function Campaigns() {
   );
 }
 
-function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { campaign: Campaign; onViewHtml: (html: string) => void; onEditCampaign: (campaign: Campaign) => void; departments: Department[] }) {
+function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments, onCampaignChanged }: { campaign: Campaign; onViewHtml: (html: string) => void; onEditCampaign: (campaign: Campaign) => void; departments: Department[]; onCampaignChanged: () => Promise<void> | void }) {
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -495,8 +537,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
     setDeleting(true);
     try {
       await api.delete(`/campaigns/${campaign.id}`);
-      // Recarrega a página após deletar
-      window.location.reload();
+      await onCampaignChanged();
     } catch (error) {
       console.error("Erro ao deletar campanha:", error);
       alert("Erro ao deletar campanha");
@@ -513,7 +554,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
     setDeactivating(true);
     try {
       await api.post(`/campaigns/${campaign.id}/deactivate`);
-      window.location.reload();
+      await onCampaignChanged();
     } catch (error: any) {
       console.error("Erro ao desativar campanha:", error);
       const errorMsg = error.response?.data?.detail || "Erro ao desativar campanha";
@@ -593,8 +634,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
       }
       
       alert(message);
-      // Recarrega a página após enviar
-      window.location.reload();
+      await onCampaignChanged();
     } catch (error: any) {
       console.error("Erro ao enviar campanha:", error);
       const errorMsg = error.response?.data?.detail || "Erro ao enviar campanha";
@@ -632,12 +672,16 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
             <span className={`text-sm font-bold px-3 py-1 rounded-lg shadow-sm ${
               campaign.status === "draft"
                 ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white"
+                : campaign.status === "scheduled"
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
                 : campaign.status === "disabled"
                   ? "bg-gradient-to-r from-slate-500 to-slate-600 text-white"
                   : "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
             }`}>
               {campaign.status === "draft"
                 ? "Rascunho"
+                : campaign.status === "scheduled"
+                  ? "Agendada"
                 : campaign.status === "disabled"
                   ? "Desativada"
                   : "Enviada"}
@@ -651,6 +695,14 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
                "Avançado"}
             </span>
           </div>
+          {campaign.start_date && campaign.status === "scheduled" && (
+            <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-sm text-slate-600 font-medium">Agendada para:</span>
+              <span className="text-sm font-bold px-3 py-1 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700">
+                {new Date(campaign.start_date).toLocaleString("pt-BR")}
+              </span>
+            </div>
+          )}
           {campaign.target_audience && (
             <div className="flex flex-col p-3 bg-slate-50 rounded-xl border border-slate-200">
               <span className="text-sm text-slate-600 font-medium mb-1 flex items-center gap-2"><FiBriefcase className="w-4 h-4" /> Departamentos Alvo:</span>
@@ -671,11 +723,11 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
           </button>
           <button 
             onClick={handleSend}
-            disabled={campaign.status !== "draft" || sending || !campaign.target_department_id}
+            disabled={(campaign.status !== "draft" && campaign.status !== "scheduled") || sending || !campaign.target_department_id}
             className={`${actionButtonBaseClass} hover:bg-emerald-600 hover:border-emerald-600 hover:text-white ${disabledHoverClass}`}
             title={!campaign.target_department_id ? "Configure um departamento alvo antes de enviar" : campaign.status === "disabled" ? "Campanha desativada não pode ser enviada" : ""}
           >
-            {sending ? <><FiLoader className="w-4 h-4 animate-spin" /> Enviando...</> : campaign.status === "draft" ? <><FiSend className="w-4 h-4" /> Enviar</> : <><FiCheck className="w-4 h-4" /> Enviada</>}
+            {sending ? <><FiLoader className="w-4 h-4 animate-spin" /> Enviando...</> : campaign.status === "draft" ? <><FiSend className="w-4 h-4" /> Enviar</> : campaign.status === "scheduled" ? <><FiCheck className="w-4 h-4" /> Agendada</> : <><FiCheck className="w-4 h-4" /> Enviada</>}
           </button>
           <button 
             onClick={() => onEditCampaign(campaign)}

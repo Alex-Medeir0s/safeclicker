@@ -1,7 +1,10 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import health, users, campaigns, templates, departments, auth, metrics
 from app.core.database import Base, engine
+from app.services.campaign_scheduler import campaign_scheduler_loop
 
 # Create tables  
 Base.metadata.create_all(bind=engine)
@@ -36,6 +39,22 @@ app.include_router(users.router)
 app.include_router(campaigns.router)
 app.include_router(templates.router)
 app.include_router(departments.router)
+
+
+@app.on_event("startup")
+async def start_campaign_scheduler():
+    app.state.campaign_scheduler_task = asyncio.create_task(campaign_scheduler_loop())
+
+
+@app.on_event("shutdown")
+async def stop_campaign_scheduler():
+    task = getattr(app.state, "campaign_scheduler_task", None)
+    if task:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 @app.get("/")
