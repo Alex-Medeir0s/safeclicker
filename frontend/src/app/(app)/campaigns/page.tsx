@@ -298,7 +298,6 @@ export default function Campaigns() {
                   className="input w-full"
                 >
                   <option value="urgencia">Urgência</option>
-                  <option value="autoridade">Autoridade</option>
                   <option value="medo">Medo</option>
                   <option value="recompensa">Recompensa</option>
                 </select>
@@ -580,7 +579,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
       }
       
       let message = `✅ Campanha enviada com sucesso!\n\n`;
-      message += `📧 Emails enviados: ${sent}/${recipients} usuários\n`;
+      message += `📧 Email(s) enviado(s): ${sent}/${recipients} usuário(s)\n`;
       message += `🏢 Departamento(s): ${deptInfo}\n`;
       
       if (errors && errors.length > 0) {
@@ -589,7 +588,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments }: { c
           message += `  • ${e.email}: ${e.error}\n`;
         });
         if (errors.length > 5) {
-          message += `  ... e ${errors.length - 5} outros erros`;
+          message += `  ... e ${errors.length - 5} outro(s) erro(s)`;
         }
       }
       

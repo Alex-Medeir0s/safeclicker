@@ -634,7 +634,7 @@ export default function Reports() {
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold">{selectedCampaign.campaign_name}</h2>
                 <p className="text-indigo-100 text-sm sm:text-base mt-1">
-                  {selectedCampaign.total_clicks} de {selectedCampaign.total_sends} usuários clicaram
+                  {selectedCampaign.total_clicks} de {selectedCampaign.total_sends} usuário(s) clicaram
                 </p>
               </div>
               <button

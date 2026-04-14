@@ -175,7 +175,7 @@ export function DashboardGestor({ metrics, onCampaignClick }: DashboardGestorPro
 
         {(metrics.sent_campaigns?.length ?? 0) > 0 && (
           <p className="mb-3 text-xs text-slate-500">
-            Exibindo {filteredSentCampaigns.length} de {metrics.sent_campaigns?.length} campanhas.
+            Exibindo {filteredSentCampaigns.length} de {metrics.sent_campaigns?.length} campanha(s).
           </p>
         )}
 

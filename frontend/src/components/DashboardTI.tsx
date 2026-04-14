@@ -581,9 +581,9 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                   </p>
                 </div>
                 <div className="flex gap-4 text-sm">
-                  <span className="text-slate-900">{campaign.users} usuários</span>
-                  <span className="text-slate-900">{campaign.clicks} cliques</span>
-                  <span className="text-slate-900">{campaign.trainings_completed ?? 0} treinamento</span>
+                  <span className="text-slate-900">{campaign.users} usuário(s)</span>
+                  <span className="text-slate-900">{campaign.clicks} clique(s)</span>
+                  <span className="text-slate-900">{campaign.trainings_completed ?? 0} treinamento(s)</span>
                 </div>
               </div>
             ))}

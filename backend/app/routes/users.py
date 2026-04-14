@@ -246,19 +246,25 @@ async def download_template(current_user: User = Depends(get_current_user)):
     writer = csv.writer(output)
     
     # Escrever header
-    writer.writerow(["full_name", "email", "password", "role", "department_id"])
+    writer.writerow(["full_name", "email", "password", "profile", "department_id"])
     
     # Escrever exemplos
-    writer.writerow(["João Silva", "joao@example.com", "senha123", "COLABORADOR", "1"])
     writer.writerow(["Maria Santos", "maria@example.com", "senha456", "GESTOR", "2"])
     writer.writerow(["Admin TI", "admin@example.com", "senha789", "TI", ""])
     
     output.seek(0)
     
+    csv_content = "\ufeff" + output.getvalue()
+
     return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=usuarios_template.csv"}
+        iter([csv_content]),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": "attachment; filename=usuarios_template.csv",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
     )
 
 
@@ -302,20 +308,26 @@ async def import_users_csv(
                     })
                     continue
                 
-                if not row.get("role") or not row.get("role").strip():
+                profile_value = (row.get("profile") or row.get("role") or "").strip()
+                if not profile_value:
                     errors.append({
                         "line": line_num,
                         "email": row.get("email"),
-                        "error": "Role é obrigatório"
+                        "error": "Profile é obrigatório"
                     })
                     continue
                 
-                role = row.get("role").strip().upper()
-                if role not in ["COLABORADOR", "GESTOR", "TI"]:
+                profile_map = {
+                    "colaborador": "COLABORADOR",
+                    "gestor": "GESTOR",
+                    "ti": "TI",
+                }
+                role = profile_map.get(profile_value.lower())
+                if not role:
                     errors.append({
                         "line": line_num,
                         "email": row.get("email"),
-                        "error": f"Role inválida: {role}. Use COLABORADOR, GESTOR ou TI"
+                        "error": f"Profile inválido: {profile_value}. Use COLABORADOR, GESTOR ou TI"
                     })
                     continue
                 
@@ -327,7 +339,7 @@ async def import_users_csv(
                         errors.append({
                             "line": line_num,
                             "email": row.get("email"),
-                            "error": f"department_id é obrigatório para role {role}"
+                            "error": f"department_id é obrigatório para profile {role}"
                         })
                         continue
                     

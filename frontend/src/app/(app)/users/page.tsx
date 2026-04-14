@@ -219,7 +219,7 @@ export default function Users() {
       });
 
       setImportMessage(
-        `✅ ${response.data.created} usuários criados com sucesso! (${response.data.total} total processados)`
+        `✅ ${response.data.created} usuário(s) criado(s) com sucesso!`
       );
 
       if (response.data.errors && response.data.errors.length > 0) {
@@ -231,7 +231,7 @@ export default function Users() {
           )
           .join("\n");
         setImportError(
-          `⚠️ ${response.data.errors.length} erros encontrados:\n${errorSummary}${
+          `⚠️ ${response.data.errors.length} erro(s) encontrado(s):\n${errorSummary}${
             response.data.errors.length > 5
               ? `\n... e mais ${response.data.errors.length - 5}`
               : ""
@@ -245,7 +245,7 @@ export default function Users() {
         setImportMessage("");
         setImportError("");
         if (event.target) event.target.value = "";
-      }, 3000);
+      }, 10000);
     } catch (error: any) {
       console.error("Erro ao importar usuários:", error);
       setImportError(
@@ -380,7 +380,7 @@ export default function Users() {
             <div className="bg-white p-6 rounded-xl border border-green-200">
               <h3 className="font-bold text-lg text-slate-900 mb-4">📋 Passo 1: Baixar Template</h3>
               <p className="text-slate-600 mb-4">
-                Clique no botão abaixo para baixar um arquivo CSV com o modelo correto de formatação.
+                Clique no botão a seguir para baixar o modelo CSV.
               </p>
               <button
                 onClick={downloadTemplate}
@@ -395,12 +395,15 @@ export default function Users() {
               <p className="text-slate-600 mb-3">
                 Abra o arquivo em Excel ou outro editor de planilhas e preencha com os dados dos usuários:
               </p>
+              <p className="text-slate-700 font-semibold mb-3">
+                Todos os campos abaixo são obrigatórios.
+              </p>
               <div className="bg-slate-50 p-4 rounded-lg text-sm font-mono text-slate-700 space-y-1 mb-4">
                 <p>• <strong>full_name</strong>: Nome completo do usuário</p>
-                <p>• <strong>email</strong>: Email único (obrigatório)</p>
-                <p>• <strong>password</strong>: Senha para acesso (obrigatório)</p>
-                <p>• <strong>role</strong>: COLABORADOR, GESTOR ou TI (obrigatório)</p>
-                <p>• <strong>department_id</strong>: ID do departamento (obrigatório para COLABORADOR e GESTOR)</p>
+                <p>• <strong>email</strong>: Email único</p>
+                <p>• <strong>password</strong>: Senha para acesso</p>
+                <p>• <strong>profile</strong>: COLABORADOR, GESTOR ou TI</p>
+                <p>• <strong>department_id</strong>: ID do departamento</p>
               </div>
             </div>
 
