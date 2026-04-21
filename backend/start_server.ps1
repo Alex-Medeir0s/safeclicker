@@ -7,8 +7,8 @@ Write-Host ""
 # Definir PYTHONPATH para o diretório backend
 $env:PYTHONPATH = (Get-Location).Path
 
-# Executar o uvicorn
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+# Executar o uvicorn acessível na rede local
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Write-Host ""
 Write-Host "Press any key to close..." -ForegroundColor Yellow

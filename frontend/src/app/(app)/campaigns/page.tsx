@@ -9,6 +9,7 @@ interface Campaign {
   id: number;
   name: string;
   status: string;
+  has_been_sent?: boolean;
   complexity: string;
   trigger?: string;
   start_date?: string;
@@ -186,6 +187,8 @@ export default function Campaigns() {
       : (campaign.target_department_id ? [campaign.target_department_id] : []);
     setSelectedDeptIds(deptIds);
     
+    const shouldClearStartDate = Boolean(campaign.has_been_sent);
+
     try {
       // Busca o template para pegar o HTML
       if (campaign.template_id) {
@@ -197,7 +200,7 @@ export default function Campaigns() {
           trigger: "urgencia",
           target_departments: campaign.target_audience || campaign.target_departments || "",
           template_id: campaign.template_id,
-          start_date: toDateTimeLocalValue(campaign.start_date),
+          start_date: shouldClearStartDate ? "" : toDateTimeLocalValue(campaign.start_date),
         });
       } else {
         setFormData({
@@ -207,7 +210,7 @@ export default function Campaigns() {
           trigger: "urgencia",
           target_departments: campaign.target_audience || campaign.target_departments || "",
           template_id: 1,
-          start_date: toDateTimeLocalValue(campaign.start_date),
+          start_date: shouldClearStartDate ? "" : toDateTimeLocalValue(campaign.start_date),
         });
       }
     } catch (error) {
@@ -219,7 +222,7 @@ export default function Campaigns() {
         trigger: "urgencia",
         target_departments: campaign.target_audience || campaign.target_departments || "",
         template_id: campaign.template_id || 1,
-        start_date: toDateTimeLocalValue(campaign.start_date),
+        start_date: shouldClearStartDate ? "" : toDateTimeLocalValue(campaign.start_date),
       });
     }
     
@@ -496,6 +499,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments, onCam
     "w-full h-11 px-3 bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const disabledHoverClass = "disabled:hover:bg-slate-100 disabled:hover:text-slate-700 disabled:hover:border-slate-300";
+  const isSentCampaign = campaign.status === "active" || campaign.status === "sent";
 
   // Função para obter nomes dos departamentos selecionados
   const getDepartmentNames = () => {
@@ -736,8 +740,16 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments, onCam
             {sending ? <><FiLoader className="w-4 h-4 animate-spin" /> Enviando...</> : campaign.status === "draft" ? <><FiSend className="w-4 h-4" /> Enviar</> : campaign.status === "scheduled" ? <><FiCheck className="w-4 h-4" /> Agendada</> : <><FiCheck className="w-4 h-4" /> Enviada</>}
           </button>
           <button 
-            onClick={() => onEditCampaign(campaign)}
-            className={`${actionButtonBaseClass} hover:bg-indigo-600 hover:border-indigo-600 hover:text-white`}
+            onClick={() => {
+              if (isSentCampaign) {
+                alert("Para editar uma campanha enviada, desative-a primeiro.");
+                return;
+              }
+              onEditCampaign(campaign);
+            }}
+            disabled={isSentCampaign}
+            title={isSentCampaign ? "Desative a campanha para poder editar" : "Editar campanha"}
+            className={`${actionButtonBaseClass} hover:bg-indigo-600 hover:border-indigo-600 hover:text-white ${disabledHoverClass}`}
           >
             <FiEdit2 className="w-4 h-4" /> Editar
           </button>

@@ -383,15 +383,15 @@ export default function Reports() {
             currentY = 40;
           }
 
+          doc.setFont("helvetica", "bold");
           doc.setFontSize(11);
-          doc.text(`${campaign.name} (ID: ${campaign.id})`, 40, currentY);
-          currentY += 10;
+          doc.text(campaign.name, 40, currentY);
 
           const clicksResponse = await api.get(`/metrics/campaigns/${campaign.id}/clicks`);
           const clicks = clicksResponse.data?.clicks || [];
 
           autoTable(doc, {
-            startY: currentY + 12,
+            startY: currentY + 4,
             head: [["Nome", "Email", "IP", "Data do Clique", "Treinamento", "Data do Treinamento"]],
             body:
               clicks.length > 0
@@ -412,17 +412,17 @@ export default function Reports() {
           });
 
           currentY = (doc as any).lastAutoTable?.finalY || currentY + 56;
-          doc.setFont("helvetica", "italic");
-          doc.setFontSize(8);
-          doc.setTextColor(100, 116, 139);
-          doc.text("Dados para fins de auditoria", 40, currentY + 10);
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(0, 0, 0);
-          currentY += 18;
+          currentY += 8;
         }
       }
 
       const totalPages = doc.internal.getNumberOfPages();
+      doc.setPage(totalPages);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("Dados para fins de auditoria", 40, pageHeight - 30);
+
       for (let page = 1; page <= totalPages; page += 1) {
         doc.setPage(page);
         doc.setFont("helvetica", "normal");
@@ -465,7 +465,7 @@ export default function Reports() {
           <h2 className="text-xl font-bold mb-4">Resumo Geral</h2>
           <div className="space-y-3">
             <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span>Total de Campanhas</span>
+              <span>Total de Campanhas Cadastradas</span>
               <span className="font-bold">{deptCampaigns}</span>
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
@@ -473,7 +473,7 @@ export default function Reports() {
               <span className="font-bold">{totalEmails}</span>
             </div>
             <div className="flex justify-between p-3 bg-slate-50 rounded">
-              <span>Total de Usuários</span>
+              <span>Total de Usuários Cadastrados</span>
               <span className="font-bold">{data.summary.total_users}</span>
             </div>
           </div>
@@ -512,8 +512,8 @@ export default function Reports() {
               <tr key={idx} className="hover:bg-slate-50">
                 <td className="px-4 py-3 text-sm text-slate-900">{dept.department}</td>
                 <td className="px-4 py-3 text-right text-sm text-slate-600">{dept.sends}</td>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-red-600">{dept.clicks}</td>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-red-700">
+                <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">{dept.clicks}</td>
+                <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
                   {dept.rate.toFixed(1)}%
                 </td>
               </tr>
@@ -606,7 +606,7 @@ export default function Reports() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-slate-700">{campaign.users}</td>
-                    <td className="px-4 py-3 text-center text-sm font-semibold text-red-600">{campaign.clicks}</td>
+                    <td className="px-4 py-3 text-center text-sm font-semibold text-slate-900">{campaign.clicks}</td>
                     <td className="px-4 py-3 text-center text-sm text-slate-600">
                       {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString("pt-BR") : "-"}
                     </td>

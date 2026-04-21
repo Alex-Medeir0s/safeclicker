@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from typing import List
 
@@ -19,6 +20,32 @@ from app.schemas.campaign import CampaignCreate, CampaignRead, CampaignUpdate
 from app.services.campaign_scheduler import send_campaign_now
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
+
+
+def annotate_campaigns_has_been_sent(db: Session, campaigns: List[Campaign]) -> None:
+    if not campaigns:
+        return
+
+    campaign_ids = [campaign.id for campaign in campaigns]
+    sent_rows = (
+        db.query(CampaignSend.campaign_id)
+        .filter(CampaignSend.campaign_id.in_(campaign_ids))
+        .distinct()
+        .all()
+    )
+    sent_campaign_ids = {row[0] for row in sent_rows}
+
+    for campaign in campaigns:
+        campaign.has_been_sent = campaign.id in sent_campaign_ids
+
+
+def annotate_campaign_has_been_sent(db: Session, campaign: Campaign) -> None:
+    sent_exists = (
+        db.query(CampaignSend.id)
+        .filter(CampaignSend.campaign_id == campaign.id)
+        .first()
+    )
+    campaign.has_been_sent = sent_exists is not None
 
 
 def clear_campaign_generated_data(db: Session, campaign_id: int):
@@ -62,6 +89,7 @@ async def get_campaigns(
     query = db.query(Campaign)
     query = apply_scope(query, Campaign, current_user)
     campaigns = query.offset(skip).limit(limit).all()
+    annotate_campaigns_has_been_sent(db, campaigns)
     return campaigns
 
 
@@ -78,6 +106,8 @@ async def get_campaign(
     # Verificar acesso
     if not check_resource_access(campaign, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
+
+    annotate_campaign_has_been_sent(db, campaign)
     
     return campaign
 
@@ -146,6 +176,12 @@ async def update_campaign(
     # Verificar acesso
     if not check_resource_access(campaign, current_user):
         raise HTTPException(status_code=403, detail="Acesso negado")
+
+    if campaign.status in {"active", "sent"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Campanha enviada só pode ser editada após desativar"
+        )
 
     try:
         # Ao atualizar a campanha, limpa os dados gerados previamente.

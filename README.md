@@ -101,8 +101,8 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 
 # URLs
-BACKEND_BASE_URL=http://localhost:8000
-FRONTEND_BASE_URL=http://localhost:3000
+APP_BASE_URL=http://SEU_IP_LOCAL:8000
+FRONTEND_URL=http://SEU_IP_LOCAL:3000
 
 # SendGrid (opcional - para envio de emails)
 SENDGRID_API_KEY=SG_SUA_API_KEY_AQUI
@@ -137,18 +137,21 @@ python init_data.py
 
 ```bash
 # Windows (PowerShell)
-$env:PYTHONPATH="d:\safeclicker\backend"; python -m uvicorn app.main:app --reload
+$env:PYTHONPATH="d:\safeclicker\backend"; python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # Windows (Command Prompt)
-set PYTHONPATH=d:\safeclicker\backend && python -m uvicorn app.main:app --reload
+set PYTHONPATH=d:\safeclicker\backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # Linux/Mac
-export PYTHONPATH=/path/to/backend && python -m uvicorn app.main:app --reload
+export PYTHONPATH=/path/to/backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 > **⚠️ Importante:** Sempre execute o comando no diretório `backend/`. O PYTHONPATH deve apontar para a pasta do backend para que o módulo `app` seja encontrado.
 
-O backend estará disponível em: **http://localhost:8000**
+O backend estará disponível em:
+
+- Local: **http://localhost:8000**
+- Rede local: **http://SEU_IP_LOCAL:8000**
 
 - API Docs (Swagger): http://localhost:8000/docs
 - Health Check: http://localhost:8000/health
@@ -169,13 +172,36 @@ cd frontend
 npm install
 ```
 
+#### Passo 2.1: Configurar URL da API no frontend (recomendado para rede local)
+
+Crie `frontend/.env.local` com:
+
+```env
+NEXT_PUBLIC_API_URL=http://SEU_IP_LOCAL:8000
+```
+
 #### Passo 3: Executar o servidor de desenvolvimento
 
 ```bash
 npm run dev
 ```
 
-O frontend estará disponível em: **http://localhost:3000**
+O frontend estará disponível em:
+
+- Local: **http://localhost:3000**
+- Rede local: **http://SEU_IP_LOCAL:3000**
+
+### Acesso pela rede local (outra máquina)
+
+1. Descubra o IP local da máquina onde o projeto está rodando (ex.: `ipconfig` no Windows).
+2. Inicie backend e frontend na máquina host.
+3. Na máquina cliente, acesse `http://SEU_IP_LOCAL:3000`.
+4. Para os links de e-mail/redirecionamentos funcionarem corretamente, configure no backend:
+
+```env
+APP_BASE_URL=http://SEU_IP_LOCAL:8000
+FRONTEND_URL=http://SEU_IP_LOCAL:3000
+```
 
 ## 📁 Estrutura do Projeto
 

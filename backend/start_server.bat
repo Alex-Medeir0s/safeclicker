@@ -8,7 +8,7 @@ echo.
 REM Definir PYTHONPATH para o diretório backend
 set PYTHONPATH=%~dp0
 
-REM Executar o uvicorn
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+REM Executar o uvicorn acessível na rede local
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 pause

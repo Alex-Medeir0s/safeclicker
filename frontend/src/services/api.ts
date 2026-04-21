@@ -1,10 +1,10 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const browserHost = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || `http://${browserHost}:8000`).replace(/\/$/, "");
 
 export const api = axios.create({
-  // Use 127.0.0.1 to evitar resolução IPv6 (::1) que causa Network Error quando o backend
-  // está escutando apenas em IPv4 (127.0.0.1).
+  // Em ambiente local de rede, usa o hostname atual do navegador por padrão.
   baseURL: API_BASE_URL,
   timeout: 30000, // 30 segundos
   headers: {

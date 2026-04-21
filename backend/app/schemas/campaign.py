@@ -43,6 +43,7 @@ class CampaignRead(CampaignBase):
     id: int
     created_by: int
     department_id: Optional[int] = None
+    has_been_sent: bool = False
     created_at: datetime
     updated_at: datetime
 
