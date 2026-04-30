@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -16,7 +16,14 @@ from app.models.campaign_send import CampaignSend
 from app.models.click_event import ClickEvent
 from app.models.training_completion import TrainingCompletion
 from app.models.user import User
+from app.models.quiz import Quiz, QuizResponse
 from app.schemas.campaign import CampaignCreate, CampaignRead, CampaignUpdate
+from app.schemas.quiz import (
+    QuizPublic,
+    QuizQuestionPublic,
+    QuizSubmitRequest,
+    QuizSubmitResponse,
+)
 from app.services.campaign_scheduler import send_campaign_now
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
@@ -76,6 +83,15 @@ class TrainingCompleteResponse(BaseModel):
     recorded: bool
     campaign_send_id: int
     completed_at: datetime
+
+
+class CampaignByTokenResponse(BaseModel):
+    campaign_id: int
+    campaign_name: str
+    has_quiz: bool
+    quiz_id: Optional[int] = None
+    quiz_title: Optional[str] = None
+    already_completed: bool = False
 
 
 @router.get("", response_model=List[CampaignRead])
@@ -378,6 +394,160 @@ def complete_training(
     return TrainingCompleteResponse(
         recorded=True,
         campaign_send_id=send_row.id,
+        completed_at=completion.completed_at,
+    )
+
+
+@router.get("/by-token/{token}", response_model=CampaignByTokenResponse)
+def get_campaign_by_token(token: str, db: Session = Depends(get_db)):
+    """Endpoint público — retorna info mínima da campanha pelo token do envio."""
+    send_row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
+    if not send_row:
+        raise HTTPException(status_code=404, detail="Token inválido")
+
+    campaign = send_row.campaign
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada")
+
+    quiz = campaign.quiz
+    already_completed = (
+        db.query(TrainingCompletion.id)
+        .filter(TrainingCompletion.campaign_send_id == send_row.id)
+        .first()
+        is not None
+    )
+
+    return CampaignByTokenResponse(
+        campaign_id=campaign.id,
+        campaign_name=campaign.name,
+        has_quiz=quiz is not None,
+        quiz_id=quiz.id if quiz else None,
+        quiz_title=quiz.title if quiz else None,
+        already_completed=already_completed,
+    )
+
+
+@router.get("/quiz-by-token/{token}", response_model=QuizPublic)
+def get_quiz_by_token(token: str, db: Session = Depends(get_db)):
+    """Endpoint público — retorna o quiz da campanha (sem revelar correct_index)."""
+    send_row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
+    if not send_row:
+        raise HTTPException(status_code=404, detail="Token inválido")
+
+    if send_row.campaign and send_row.campaign.status == "disabled":
+        raise HTTPException(status_code=400, detail="Campanha desativada")
+
+    quiz = send_row.campaign.quiz if send_row.campaign else None
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Esta campanha não tem quiz vinculado")
+
+    return QuizPublic(
+        id=quiz.id,
+        title=quiz.title,
+        description=quiz.description,
+        category=quiz.category,
+        difficulty=quiz.difficulty,
+        xp=quiz.xp,
+        questions=[
+            QuizQuestionPublic(
+                id=q.id,
+                position=q.position,
+                text=q.text,
+                alternatives=q.alternatives,
+            )
+            for q in quiz.questions
+        ],
+    )
+
+
+@router.post("/quiz/submit", response_model=QuizSubmitResponse)
+def submit_quiz(
+    payload: QuizSubmitRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Endpoint público — recebe respostas do quiz e marca treinamento como concluído."""
+    token = (payload.token or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Token é obrigatório")
+
+    send_row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
+    if not send_row:
+        raise HTTPException(status_code=404, detail="Token inválido")
+
+    if send_row.campaign and send_row.campaign.status == "disabled":
+        raise HTTPException(status_code=400, detail="Campanha desativada")
+
+    quiz = send_row.campaign.quiz if send_row.campaign else None
+    if not quiz:
+        raise HTTPException(status_code=400, detail="Esta campanha não tem quiz vinculado")
+
+    if len(payload.answers) != len(quiz.questions):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Esperado {len(quiz.questions)} respostas, recebido {len(payload.answers)}",
+        )
+
+    correct_count = sum(
+        1
+        for question, answer in zip(quiz.questions, payload.answers)
+        if answer is not None and answer == question.correct_index
+    )
+
+    existing_completion = (
+        db.query(TrainingCompletion)
+        .filter(TrainingCompletion.campaign_send_id == send_row.id)
+        .first()
+    )
+
+    if existing_completion:
+        return QuizSubmitResponse(
+            recorded=False,
+            correct_count=correct_count,
+            total_questions=len(quiz.questions),
+            completed_at=existing_completion.completed_at,
+        )
+
+    completion = TrainingCompletion(
+        campaign_send_id=send_row.id,
+        completed_at=datetime.utcnow(),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", ""),
+    )
+    response_row = QuizResponse(
+        campaign_send_id=send_row.id,
+        quiz_id=quiz.id,
+        answers=payload.answers,
+        correct_count=correct_count,
+        total_questions=len(quiz.questions),
+        submitted_at=datetime.utcnow(),
+    )
+
+    try:
+        db.add(completion)
+        db.add(response_row)
+        db.commit()
+        db.refresh(completion)
+    except IntegrityError:
+        db.rollback()
+        existing_completion = (
+            db.query(TrainingCompletion)
+            .filter(TrainingCompletion.campaign_send_id == send_row.id)
+            .first()
+        )
+        if existing_completion:
+            return QuizSubmitResponse(
+                recorded=False,
+                correct_count=correct_count,
+                total_questions=len(quiz.questions),
+                completed_at=existing_completion.completed_at,
+            )
+        raise HTTPException(status_code=500, detail="Erro ao registrar conclusão")
+
+    return QuizSubmitResponse(
+        recorded=True,
+        correct_count=correct_count,
+        total_questions=len(quiz.questions),
         completed_at=completion.completed_at,
     )
 

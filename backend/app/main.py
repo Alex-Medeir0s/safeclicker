@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import health, users, campaigns, templates, departments, auth, metrics
+from app.routes import health, users, campaigns, templates, departments, auth, metrics, quizzes
 from app.core.database import Base, engine
 from app.services.campaign_scheduler import campaign_scheduler_loop
 
@@ -40,6 +40,7 @@ app.include_router(users.router)
 app.include_router(campaigns.router)
 app.include_router(templates.router)
 app.include_router(departments.router)
+app.include_router(quizzes.router)
 
 
 @app.on_event("startup")

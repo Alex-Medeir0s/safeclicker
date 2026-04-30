@@ -4,6 +4,15 @@ from app.schemas.template import TemplateCreate, TemplateRead
 from app.schemas.department import DepartmentCreate, DepartmentRead
 from app.schemas.campaign_send import CampaignSendRead, CampaignSendCreate
 from app.schemas.click_event import ClickEventRead
+from app.schemas.quiz import (
+    QuizCreate,
+    QuizRead,
+    QuizUpdate,
+    QuizSummary,
+    QuizPublic,
+    QuizSubmitRequest,
+    QuizSubmitResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -19,5 +28,12 @@ __all__ = [
     "CampaignSendRead",
     "CampaignSendCreate",
     "ClickEventRead",
+    "QuizCreate",
+    "QuizRead",
+    "QuizUpdate",
+    "QuizSummary",
+    "QuizPublic",
+    "QuizSubmitRequest",
+    "QuizSubmitResponse",
 ]
 

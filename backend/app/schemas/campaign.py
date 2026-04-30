@@ -15,6 +15,7 @@ class CampaignBase(BaseModel):
     trigger: Optional[str] = None
     target_audience: Optional[str] = None
     target_department_id: Optional[int] = None
+    quiz_id: Optional[int] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
@@ -35,6 +36,7 @@ class CampaignUpdate(BaseModel):
     trigger: Optional[str] = None
     target_audience: Optional[str] = None
     target_department_id: Optional[int] = None
+    quiz_id: Optional[int] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 

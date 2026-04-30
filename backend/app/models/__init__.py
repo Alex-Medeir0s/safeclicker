@@ -6,6 +6,7 @@ from app.models.microtraining import Microtraining
 from app.models.campaign_send import CampaignSend
 from app.models.click_event import ClickEvent
 from app.models.training_completion import TrainingCompletion
+from app.models.quiz import Quiz, QuizQuestion, QuizResponse
 
 __all__ = [
     "User",
@@ -16,5 +17,8 @@ __all__ = [
     "CampaignSend",
     "ClickEvent",
     "TrainingCompletion",
+    "Quiz",
+    "QuizQuestion",
+    "QuizResponse",
 ]
 

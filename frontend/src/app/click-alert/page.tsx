@@ -36,7 +36,7 @@ export default function ClickAlert() {
 
   useEffect(() => {
     if (redirect && token) {
-      window.location.href = `/phishing-training?token=${token}`;
+      window.location.href = `/quiz/${encodeURIComponent(token)}`;
     }
   }, [redirect, token]);
 
@@ -106,7 +106,7 @@ export default function ClickAlert() {
           {/* CTA */}
           <div className="text-center">
             <a
-              href={token ? `/phishing-training?token=${token}` : '/phishing-training'}
+              href={token ? `/quiz/${encodeURIComponent(token)}` : '#'}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-300 hover:shadow-lg"
             >
               <FiCheckCircle className="w-5 h-5" />

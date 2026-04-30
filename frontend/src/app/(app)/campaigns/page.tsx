@@ -16,6 +16,7 @@ interface Campaign {
   target_departments?: string;
   target_audience?: string;
   target_department_id?: number;
+  quiz_id?: number | null;
   created_at: string;
   template_id?: number;
   subject?: string;
@@ -27,10 +28,18 @@ interface Department {
   name: string;
 }
 
+interface QuizOption {
+  id: number;
+  title: string;
+  difficulty: string;
+  question_count: number;
+}
+
 export default function Campaigns() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedHtml, setSelectedHtml] = useState<string | null>(null);
@@ -44,6 +53,7 @@ export default function Campaigns() {
     start_date: "",
     target_departments: "",
     template_id: 1,
+    quiz_id: "" as string,
   });
   const [error, setError] = useState("");
 
@@ -73,6 +83,7 @@ export default function Campaigns() {
     
     fetchCampaigns();
     fetchDepartments();
+    fetchQuizzes();
 
     const refreshInterval = window.setInterval(() => {
       fetchCampaigns();
@@ -88,6 +99,15 @@ export default function Campaigns() {
       setDepartments(response.data);
     } catch (error) {
       console.error("Erro ao buscar departamentos:", error);
+    }
+  };
+
+  const fetchQuizzes = async () => {
+    try {
+      const response = await api.get("/quizzes");
+      setQuizzes(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar quizzes:", error);
     }
   };
 
@@ -115,6 +135,8 @@ export default function Campaigns() {
       return;
     }
     
+    const quizIdValue = formData.quiz_id ? parseInt(formData.quiz_id, 10) : null;
+
     try {
       if (editingCampaign) {
         // Atualizar campanha existente
@@ -126,6 +148,7 @@ export default function Campaigns() {
           complexity: formData.complexity,
           target_audience: targetDepartments,
           target_department_id: targetDepartmentId,
+          quiz_id: quizIdValue,
           subject: formData.name,
           html_template: formData.html_content,
           start_date: formData.start_date || null,
@@ -153,20 +176,22 @@ export default function Campaigns() {
           status: "draft",
           target_audience: targetDepartments,
           target_department_id: targetDepartmentId,
+          quiz_id: quizIdValue,
           subject: formData.name,
           html_template: formData.html_content,
           start_date: formData.start_date || null,
         });
       }
-      
-      setFormData({ 
-        name: "", 
+
+      setFormData({
+        name: "",
         html_content: "",
-        complexity: "basico", 
+        complexity: "basico",
         trigger: "urgencia",
         start_date: "",
         target_departments: "",
         template_id: 1,
+        quiz_id: "",
       });
       setSelectedDeptIds([]);
       setShowForm(false);
@@ -189,9 +214,11 @@ export default function Campaigns() {
     
     const shouldClearStartDate = Boolean(campaign.has_been_sent);
 
-    try {
-      // Busca o template para pegar o HTML
-      if (campaign.template_id) {
+    const currentQuizId = campaign.quiz_id ? String(campaign.quiz_id) : "";
+
+    // Busca o template para pegar o HTML
+    if (campaign.template_id) {
+      try {
         const templateResponse = await api.get(`/templates/${campaign.template_id}`);
         setFormData({
           name: campaign.name,
@@ -200,28 +227,31 @@ export default function Campaigns() {
           trigger: "urgencia",
           target_departments: campaign.target_audience || campaign.target_departments || "",
           template_id: campaign.template_id,
+          quiz_id: currentQuizId,
           start_date: shouldClearStartDate ? "" : toDateTimeLocalValue(campaign.start_date),
         });
-      } else {
+      } catch (error) {
+        console.error("Erro ao carregar template:", error);
         setFormData({
           name: campaign.name,
           html_content: "",
           complexity: campaign.complexity,
           trigger: "urgencia",
           target_departments: campaign.target_audience || campaign.target_departments || "",
-          template_id: 1,
+          template_id: campaign.template_id || 1,
+          quiz_id: currentQuizId,
           start_date: shouldClearStartDate ? "" : toDateTimeLocalValue(campaign.start_date),
         });
       }
-    } catch (error) {
-      console.error("Erro ao carregar template:", error);
+    } else {
       setFormData({
         name: campaign.name,
         html_content: "",
         complexity: campaign.complexity,
         trigger: "urgencia",
         target_departments: campaign.target_audience || campaign.target_departments || "",
-        template_id: campaign.template_id || 1,
+        template_id: 1,
+        quiz_id: currentQuizId,
         start_date: shouldClearStartDate ? "" : toDateTimeLocalValue(campaign.start_date),
       });
     }
@@ -345,6 +375,25 @@ export default function Campaigns() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium mb-2">Quiz de Treinamento</label>
+              <select
+                value={formData.quiz_id}
+                onChange={(e) => setFormData({ ...formData, quiz_id: e.target.value })}
+                className="input w-full"
+              >
+                <option value="">Sem quiz — usar fluxo padrão (Ciente)</option>
+                {quizzes.map((quiz) => (
+                  <option key={quiz.id} value={quiz.id}>
+                    {quiz.title} — {quiz.difficulty} ({quiz.question_count} perguntas)
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">
+                Se selecionado, o colaborador será direcionado ao quiz após a tela de aviso de phishing.
+              </p>
+            </div>
+
+            <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-medium">Departamentos Alvo</label>
                 <button
@@ -413,6 +462,7 @@ export default function Campaigns() {
                     start_date: "",
                     target_departments: "",
                     template_id: 1,
+                    quiz_id: "",
                   });
                   setSelectedDeptIds([]);
                 }}

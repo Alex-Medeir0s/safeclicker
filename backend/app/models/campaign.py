@@ -20,6 +20,7 @@ class Campaign(Base):
     trigger = Column(String, nullable=True)  # urgencia, autoridade, medo, recompensa
     target_audience = Column(String, nullable=True)
     target_department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     start_date = Column(DateTime, nullable=True)
@@ -35,4 +36,5 @@ class Campaign(Base):
     )
     department = relationship("Department", foreign_keys=[department_id])
     target_department = relationship("Department", foreign_keys=[target_department_id])
+    quiz = relationship("Quiz", back_populates="campaigns")
 
