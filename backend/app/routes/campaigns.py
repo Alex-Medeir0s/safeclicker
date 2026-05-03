@@ -29,6 +29,10 @@ from app.services.campaign_scheduler import send_campaign_now
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
 
+class CampaignStatusResponse(BaseModel):
+    status: str  # "active" ou "disabled"
+
+
 def annotate_campaigns_has_been_sent(db: Session, campaigns: List[Campaign]) -> None:
     if not campaigns:
         return
@@ -333,6 +337,17 @@ def track_click(token: str, request: Request, db: Session = Depends(get_db)):
     db.commit()
 
     frontend = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    return RedirectResponse(url=f"{frontend}/click-alert?token={token}")
+
+
+@router.get("/validate/{token}", response_model=CampaignStatusResponse, include_in_schema=False)
+def validate_campaign(token: str, db: Session = Depends(get_db)):
+    row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Token inválido")
+
+    campaign_status = row.campaign.status if row.campaign else "disabled"
+    return CampaignStatusResponse(status=campaign_status)
     return RedirectResponse(url=f"{frontend}/click-alert?token={token}")
 
 

@@ -270,8 +270,8 @@ export default function Users() {
 
   if (isGestor) {
     return (
-      <div className="animate-fade-in">
-        <div className="flex justify-between items-center mb-8">
+      <div className="animate-fade-in mx-auto max-w-4xl px-4">
+        <div className="flex flex-col items-center mb-8 text-center">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
               Usuários do Departamento
@@ -287,13 +287,13 @@ export default function Users() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-            <table className="w-full">
+            <table className="w-full text-center">
               <thead className="bg-gradient-to-r from-slate-100 to-slate-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">👤 Colaborador</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">📧 Emails Enviados</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">🖱️ Cliques</th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">🎯 Campanhas Enviadas</th>
+                  <th className="px-6 py-4 text-center text-sm font-bold text-black">👤 Colaborador</th>
+                  <th className="px-6 py-4 text-center text-sm font-bold text-black">📧 Emails Enviados</th>
+                  <th className="px-6 py-4 text-center text-sm font-bold text-black">🖱️ Cliques</th>
+                  <th className="px-6 py-4 text-center text-sm font-bold text-black">🎯 Campanhas Enviadas</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -303,13 +303,13 @@ export default function Users() {
                     style={{ animationDelay: `${idx * 0.05}s` }}
                     className="hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all duration-300 animate-fade-in"
                   >
-                    <td className="px-6 py-4 text-sm text-slate-900">
-                      <div className="font-semibold">{c.full_name}</div>
-                      <div className="text-xs text-slate-500">{c.email}</div>
+                    <td className="px-6 py-4 text-sm text-center text-black">
+                      <div className="font-semibold text-black">{c.full_name}</div>
+                      <div className="text-sm text-black">{c.email}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-center text-slate-700">{c.sends}</td>
-                    <td className="px-6 py-4 text-sm text-center text-slate-700">{c.clicks}</td>
-                    <td className="px-6 py-4 text-sm text-center text-slate-700">
+                    <td className="px-6 py-4 text-sm text-center text-black">{c.sends}</td>
+                    <td className="px-6 py-4 text-sm text-center text-black">{c.clicks}</td>
+                    <td className="px-6 py-4 text-sm text-center text-black">
                       {c.campaigns && c.campaigns.length > 0 ? c.campaigns.join(", ") : "-"}
                     </td>
                   </tr>
@@ -568,15 +568,15 @@ export default function Users() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-          <table className="w-full">
+          <table className="w-full text-center">
             <thead className="bg-gradient-to-r from-slate-100 to-slate-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">👤 Nome</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">📧 E-mail</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">🏷️ Perfil</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">🏢 Departamento</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">📅 Data de Criação</th>
-                <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">⚙️ Ações</th>
+                <tr>
+                <th className="px-6 py-4 text-center text-sm font-bold text-black">👤 Nome</th>
+                <th className="px-6 py-4 text-center text-sm font-bold text-black">📧 E-mail</th>
+                <th className="px-6 py-4 text-center text-sm font-bold text-black">🏷️ Perfil</th>
+                <th className="px-6 py-4 text-center text-sm font-bold text-black">🏢 Departamento</th>
+                <th className="px-6 py-4 text-center text-sm font-bold text-black">📅 Data de Criação</th>
+                <th className="px-6 py-4 text-center text-sm font-bold text-black">⚙️ Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -586,17 +586,13 @@ export default function Users() {
                   style={{ animationDelay: `${idx * 0.05}s` }}
                   className="hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all duration-300 animate-fade-in"
                 >
-                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{user.full_name}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">{user.email}</td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                      {user.role}
-                    </span>
+                  <td className="px-6 py-4 text-sm text-center font-medium text-black">{user.full_name}</td>
+                  <td className="px-6 py-4 text-sm text-center text-black">{user.email}</td>
+                  <td className="px-6 py-4 text-sm text-center text-black font-medium">{user.role}</td>
+                  <td className="px-6 py-4 text-sm text-center text-black">
+                    {user.department_name || <span className="text-black italic">Sem departamento</span>}
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {user.department_name || <span className="text-slate-400 italic">Sem departamento</span>}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-500">
+                  <td className="px-6 py-4 text-sm text-center text-black">
                     {new Date(user.created_at).toLocaleDateString("pt-BR")}
                   </td>
                   <td className="px-6 py-4 text-sm">

@@ -67,6 +67,13 @@ export default function Campaigns() {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
 
+  const getMinDateTimeBrasilia = () => {
+    const now = new Date();
+    const brasiliaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const pad = (num: number) => String(num).padStart(2, '0');
+    return `${brasiliaTime.getFullYear()}-${pad(brasiliaTime.getMonth() + 1)}-${pad(brasiliaTime.getDate())}T${pad(brasiliaTime.getHours())}:${pad(brasiliaTime.getMinutes())}`;
+  };
+
   useEffect(() => {
     // Limpar localStorage de departamentos em cache
     if (typeof window !== "undefined") {
@@ -367,10 +374,11 @@ export default function Campaigns() {
                 type="datetime-local"
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                min={getMinDateTimeBrasilia()}
                 className="input w-full"
               />
               <p className="text-xs text-slate-500 mt-1">
-                Opcional. Se informar data e hora, a campanha será enviada automaticamente nesse momento.
+                Opcional. Se informar data e hora, a campanha será enviada automaticamente nesse momento. Apenas datas e horas futuras (horário de Brasília) são permitidas.
               </p>
             </div>
 
@@ -380,16 +388,17 @@ export default function Campaigns() {
                 value={formData.quiz_id}
                 onChange={(e) => setFormData({ ...formData, quiz_id: e.target.value })}
                 className="input w-full"
+                required
               >
-                <option value="">Sem quiz — usar fluxo padrão (Ciente)</option>
+                <option value="" disabled>Selecione um quiz</option>
                 {quizzes.map((quiz) => (
                   <option key={quiz.id} value={quiz.id}>
-                    {quiz.title} ({quiz.question_count} perguntas, {quiz.total_xp} XP)
+                    {quiz.title}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-slate-500 mt-1">
-                Se selecionado, o colaborador será direcionado ao quiz após a tela de aviso de phishing.
+                Obrigatório. O colaborador será direcionado ao quiz após a tela de aviso de phishing.
               </p>
             </div>
 
@@ -712,17 +721,16 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments, onCam
         <div className="mb-4">
           <div className="flex items-start justify-between mb-2">
             <h3 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{campaign.name}</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleViewHtml}
-                disabled={loading}
-                title="Visualizar HTML"
-                className="w-8 h-8 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-blue-600 hover:border-blue-600 hover:text-white disabled:opacity-50 disabled:hover:bg-white disabled:hover:border-slate-300 disabled:hover:text-slate-600 transition-all duration-300 flex items-center justify-center"
-              >
-                {loading ? <FiLoader className="w-4 h-4 animate-spin" /> : <FiEye className="w-4 h-4" />}
-              </button>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">#{campaign.id}</span>
-            </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleViewHtml}
+                  disabled={loading}
+                  title="Visualizar HTML"
+                  className="w-8 h-8 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-blue-600 hover:border-blue-600 hover:text-white disabled:opacity-50 disabled:hover:bg-white disabled:hover:border-slate-300 disabled:hover:text-slate-600 transition-all duration-300 flex items-center justify-center"
+                >
+                  {loading ? <FiLoader className="w-4 h-4 animate-spin" /> : <FiEye className="w-4 h-4" />}
+                </button>
+              </div>
           </div>
         </div>
 

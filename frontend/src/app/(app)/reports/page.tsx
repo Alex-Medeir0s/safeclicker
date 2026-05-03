@@ -230,7 +230,7 @@ export default function Reports() {
       doc.text("Relatório de Campanhas", pageWidth - 40, 40, { align: "right" });
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.text(companyName, pageWidth - 40, 56, { align: "right" });
+      doc.text("Dados para fins de auditoria", pageWidth - 40, 56, { align: "right" });
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.text(`Gerado em: ${generatedAt}`, pageWidth - 40, 68, { align: "right" });
@@ -289,7 +289,7 @@ export default function Reports() {
       doc.setTextColor(71, 85, 105);
       const totalRegisteredCampaigns = data.summary.total_campaigns ?? 0;
       const activeCampaignsSummary = data.summary.active_campaigns ?? deptCampaigns;
-      const summaryText = `Atualmente ha, ${totalRegisteredCampaigns} campanha(s) cadastrada(s), e ${activeCampaignsSummary} campanha(s) executada(s), com ${totalEmails} email(s) enviado(s). A taxa de segurança observada foi de ${(100 - deptClickRate).toFixed(1)}%, indicando que ${deptClickRate.toFixed(1)}% dos usuários clicaram.`;
+      const summaryText = `Há ${totalRegisteredCampaigns} campanha(s) cadastrada(s), e ${activeCampaignsSummary} campanha(s) executada(s), com ${totalEmails} email(s) enviado(s). A taxa de segurança observada foi de ${(100 - deptClickRate).toFixed(1)}%, indicando que ${deptClickRate.toFixed(1)}% dos usuários clicaram.`;
       const summaryLines = doc.splitTextToSize(summaryText, pageWidth - 80);
       doc.text(summaryLines, 40, currentY + 12);
       currentY = currentY + 12 + summaryLines.length * 14 + 8;
@@ -314,18 +314,14 @@ export default function Reports() {
           alternateRowStyles: tableAltRowStyles,
           didParseCell: (hookData) => {
             if (hookData.section === "body" && hookData.column.index === 1) {
-              const raw = String(hookData.cell.raw || "").trim().toLowerCase();
+              const raw = String(hookData.cell.raw || "").trim();
               hookData.cell.styles.fontStyle = "bold";
-              if (raw.includes("rascunho")) {
-                hookData.cell.styles.textColor = [107, 114, 128];
-              } else if (raw.includes("desativada")) {
-                hookData.cell.styles.textColor = [71, 85, 105];
-              } else if (raw.includes("enviada") || raw.includes("agendada")) {
-                hookData.cell.styles.textColor = [59, 130, 246];
-              } else if (raw.includes("ativa")) {
+              if (raw === "Ativa") {
                 hookData.cell.styles.textColor = [34, 197, 94];
-              } else if (raw.includes("concluída") || raw.includes("concluida")) {
-                hookData.cell.styles.textColor = [37, 99, 235];
+              } else if (raw === "Agendada") {
+                hookData.cell.styles.textColor = [59, 130, 246];
+              } else {
+                hookData.cell.styles.textColor = [0, 0, 0];
               }
             }
           },
@@ -361,21 +357,22 @@ export default function Reports() {
       );
 
       if (activeCampaigns.length > 0) {
+        currentY += 20;
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(1);
         doc.line(40, currentY + 10, pageWidth - 40, currentY + 10);
+        doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
-        doc.setTextColor(100, 116, 139);
         doc.text("Detalhamento", 40, currentY + 28);
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(14);
         doc.text("Campanhas Ativas e Cliques", 40, currentY + 46);
-        currentY = currentY + 54;
+        currentY = currentY + 76;
 
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(1);
         doc.line(40, currentY, pageWidth - 40, currentY);
-        currentY += 12;
+        currentY += 16;
 
         for (const campaign of activeCampaigns) {
           if (currentY > 720) {
@@ -418,10 +415,7 @@ export default function Reports() {
 
       const totalPages = doc.internal.getNumberOfPages();
       doc.setPage(totalPages);
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text("Dados para fins de auditoria", 40, pageHeight - 30);
+      // footer left text removed as requested
 
       for (let page = 1; page <= totalPages; page += 1) {
         doc.setPage(page);
@@ -591,15 +585,12 @@ export default function Reports() {
                   >
                     <td className="px-4 py-3 text-center text-sm font-semibold text-slate-900">{campaign.name}</td>
                     <td className="px-4 py-3 text-center text-sm">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          campaign.status === "draft"
-                            ? "bg-yellow-100 text-yellow-700"
+                      <span className={`px-3 py-0.5 rounded-full text-xs font-bold ${
+                          campaign.status === "active"
+                            ? "bg-emerald-100 text-emerald-700"
                             : campaign.status === "scheduled"
                               ? "bg-blue-100 text-blue-700"
-                            : campaign.status === "disabled"
-                              ? "bg-slate-100 text-slate-700"
-                              : "bg-green-100 text-green-700"
+                              : "bg-transparent text-black"
                         }`}
                       >
                         {formatStatus(campaign.status)}

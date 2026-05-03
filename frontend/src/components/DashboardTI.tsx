@@ -577,8 +577,8 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-slate-900">{campaign.name}</h3>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${campaign.status === "scheduled" ? "bg-blue-100 text-blue-700" : campaign.status === "draft" ? "bg-yellow-100 text-yellow-700" : campaign.status === "disabled" ? "bg-slate-100 text-slate-700" : "bg-emerald-100 text-emerald-700"}`}>
-                      {campaign.status === "scheduled" ? "Agendada" : campaign.status === "draft" ? "Rascunho" : campaign.status === "disabled" ? "Desativada" : "Enviada"}
+                    <span className={`px-3 py-0.5 rounded-full text-xs font-bold ${campaign.status === "active" ? "bg-emerald-100 text-emerald-700" : campaign.status === "scheduled" ? "bg-blue-100 text-blue-700" : "bg-transparent text-black"}`}>
+                      {campaign.status === "scheduled" ? "Agendada" : campaign.status === "draft" ? "Rascunho" : campaign.status === "disabled" ? "Desativada" : campaign.status === "active" ? "Ativa" : "Enviada"}
                     </span>
                   </div>
                   <p className="text-sm text-slate-600">

@@ -28,7 +28,10 @@ export default function Departments() {
   const fetchDepartments = async () => {
     try {
       const response = await api.get("/departments/");
-      setDepartments(response.data);
+      const sorted = (response.data || []).slice().sort((a: Department, b: Department) =>
+        a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
+      );
+      setDepartments(sorted);
     } catch (error) {
       console.error("Erro ao buscar departamentos:", error);
     } finally {
