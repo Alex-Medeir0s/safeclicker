@@ -441,19 +441,21 @@ def get_quiz_by_token(token: str, db: Session = Depends(get_db)):
     if not quiz:
         raise HTTPException(status_code=404, detail="Esta campanha não tem quiz vinculado")
 
+    total_xp = sum((q.xp or 0) for q in quiz.questions)
     return QuizPublic(
         id=quiz.id,
         title=quiz.title,
         description=quiz.description,
         category=quiz.category,
-        difficulty=quiz.difficulty,
-        xp=quiz.xp,
+        total_xp=total_xp,
         questions=[
             QuizQuestionPublic(
                 id=q.id,
                 position=q.position,
                 text=q.text,
                 alternatives=q.alternatives,
+                difficulty=q.difficulty,
+                xp=q.xp,
             )
             for q in quiz.questions
         ],

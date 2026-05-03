@@ -31,8 +31,8 @@ interface Department {
 interface QuizOption {
   id: number;
   title: string;
-  difficulty: string;
   question_count: number;
+  total_xp: number;
 }
 
 export default function Campaigns() {
@@ -384,7 +384,7 @@ export default function Campaigns() {
                 <option value="">Sem quiz — usar fluxo padrão (Ciente)</option>
                 {quizzes.map((quiz) => (
                   <option key={quiz.id} value={quiz.id}>
-                    {quiz.title} — {quiz.difficulty} ({quiz.question_count} perguntas)
+                    {quiz.title} ({quiz.question_count} perguntas, {quiz.total_xp} XP)
                   </option>
                 ))}
               </select>

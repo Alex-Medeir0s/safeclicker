@@ -22,15 +22,15 @@ type Question = {
   text: string;
   alternatives: string[];
   correctIndex: number | null;
+  difficulty: Difficulty;
 };
 
 type QuizSummary = {
   id: number;
   title: string;
   category: string | null;
-  difficulty: Difficulty;
-  xp: number;
   question_count: number;
+  total_xp: number;
 };
 
 type QuizDetail = {
@@ -38,24 +38,18 @@ type QuizDetail = {
   title: string;
   description: string | null;
   category: string | null;
-  difficulty: Difficulty;
-  xp: number;
   questions: Array<{
     id: number;
     position: number;
     text: string;
     alternatives: string[];
     correct_index: number;
+    difficulty: Difficulty | null;
   }>;
 };
 
-const REQUIRED_QUESTIONS: Record<Difficulty, number> = {
-  Fácil: 15,
-  Médio: 10,
-  Difícil: 5,
-};
-
 const ALTERNATIVE_LABELS = ["A", "B", "C", "D", "E"];
+const DIFFICULTIES: Difficulty[] = ["Fácil", "Médio", "Difícil"];
 
 const xpForDifficulty: Record<Difficulty, number> = {
   Fácil: 100,
@@ -73,15 +67,8 @@ const makeEmptyQuestion = (): Question => ({
   text: "",
   alternatives: ["", "", "", "", ""],
   correctIndex: null,
+  difficulty: "Fácil",
 });
-
-const buildQuestions = (count: number, existing: Question[] = []): Question[] => {
-  const result: Question[] = [];
-  for (let i = 0; i < count; i++) {
-    result.push(existing[i] ?? makeEmptyQuestion());
-  }
-  return result;
-};
 
 const isQuestionComplete = (question: Question): boolean =>
   question.text.trim().length > 0 &&
@@ -96,13 +83,16 @@ export default function PhishingTrainingPage() {
   const [loading, setLoading] = useState(true);
 
   const [step, setStep] = useState<1 | 2>(1);
-  const [form, setForm] = useState({ title: "", category: "", description: "", difficulty: "Fácil" as Difficulty });
-  const [questions, setQuestions] = useState<Question[]>(buildQuestions(REQUIRED_QUESTIONS["Fácil"]));
+  const [form, setForm] = useState({ title: "", category: "", description: "" });
+  const [questions, setQuestions] = useState<Question[]>([makeEmptyQuestion()]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [saving, setSaving] = useState(false);
 
-  const requiredCount = REQUIRED_QUESTIONS[form.difficulty];
   const completedCount = questions.filter(isQuestionComplete).length;
+  const totalXp = questions.reduce(
+    (acc, q) => acc + (isQuestionComplete(q) ? xpForDifficulty[q.difficulty] : 0),
+    0
+  );
 
   const showFeedback = (type: "success" | "error" | "info", message: string) => {
     setFeedback({ type, message });
@@ -127,8 +117,8 @@ export default function PhishingTrainingPage() {
   }, []);
 
   const resetForm = () => {
-    setForm({ title: "", category: "", description: "", difficulty: "Fácil" });
-    setQuestions(buildQuestions(REQUIRED_QUESTIONS["Fácil"]));
+    setForm({ title: "", category: "", description: "" });
+    setQuestions([makeEmptyQuestion()]);
     setCurrentIdx(0);
     setStep(1);
     setEditingId(null);
@@ -137,12 +127,6 @@ export default function PhishingTrainingPage() {
   const closeModal = () => {
     setShowForm(false);
     resetForm();
-  };
-
-  const handleDifficultyChange = (d: Difficulty) => {
-    setForm({ ...form, difficulty: d });
-    setQuestions((prev) => buildQuestions(REQUIRED_QUESTIONS[d], prev));
-    setCurrentIdx(0);
   };
 
   const updateQuestion = (idx: number, patch: Partial<Question>) => {
@@ -159,6 +143,27 @@ export default function PhishingTrainingPage() {
     );
   };
 
+  const addQuestion = () => {
+    setQuestions((prev) => {
+      const next = [...prev, makeEmptyQuestion()];
+      setCurrentIdx(next.length - 1);
+      return next;
+    });
+  };
+
+  const removeQuestion = (idx: number) => {
+    if (questions.length === 1) {
+      showFeedback("error", "O quiz precisa ter ao menos uma pergunta");
+      return;
+    }
+    setQuestions((prev) => prev.filter((_, i) => i !== idx));
+    setCurrentIdx((curr) => {
+      if (idx < curr) return curr - 1;
+      if (curr >= questions.length - 1) return Math.max(0, questions.length - 2);
+      return curr;
+    });
+  };
+
   const handleNextStep = () => {
     if (!form.title.trim()) {
       showFeedback("error", "Informe um título para o quiz");
@@ -169,6 +174,10 @@ export default function PhishingTrainingPage() {
   };
 
   const handleSave = async () => {
+    if (questions.length === 0) {
+      showFeedback("error", "Adicione ao menos uma pergunta");
+      return;
+    }
     const firstIncomplete = questions.findIndex((q) => !isQuestionComplete(q));
     if (firstIncomplete !== -1) {
       setCurrentIdx(firstIncomplete);
@@ -180,12 +189,11 @@ export default function PhishingTrainingPage() {
       title: form.title,
       description: form.description || null,
       category: form.category || null,
-      difficulty: form.difficulty,
-      xp: xpForDifficulty[form.difficulty],
       questions: questions.map((q) => ({
         text: q.text,
         alternatives: q.alternatives,
         correct_index: q.correctIndex as number,
+        difficulty: q.difficulty,
       })),
     };
 
@@ -219,14 +227,16 @@ export default function PhishingTrainingPage() {
         title: quiz.title,
         category: quiz.category ?? "",
         description: quiz.description ?? "",
-        difficulty: quiz.difficulty,
       });
-      const loaded: Question[] = quiz.questions.map((q) => ({
-        text: q.text,
-        alternatives: q.alternatives,
-        correctIndex: q.correct_index,
-      }));
-      setQuestions(buildQuestions(REQUIRED_QUESTIONS[quiz.difficulty], loaded));
+      const loaded: Question[] = quiz.questions.length
+        ? quiz.questions.map((q) => ({
+            text: q.text,
+            alternatives: q.alternatives,
+            correctIndex: q.correct_index,
+            difficulty: (q.difficulty as Difficulty) ?? "Fácil",
+          }))
+        : [makeEmptyQuestion()];
+      setQuestions(loaded);
       setStep(1);
       setCurrentIdx(0);
       setShowForm(true);
@@ -265,7 +275,7 @@ export default function PhishingTrainingPage() {
           }}
           className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
         >
-          <FiPlus className="w-5 h-5" /> Criar Quiz
+          <FiPlus className="w-5 h-5" /> Novo Quiz
         </button>
       </div>
 
@@ -285,11 +295,9 @@ export default function PhishingTrainingPage() {
 
               <div className="relative p-6 space-y-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`inline-flex items-center text-xs font-semibold border px-2.5 py-1 rounded-full ${difficultyStyle[quiz.difficulty]}`}
-                  >
-                    {quiz.difficulty}
-                  </span>
+                  <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                    {quiz.category || "Geral"}
+                  </p>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleEdit(quiz.id)}
@@ -308,12 +316,7 @@ export default function PhishingTrainingPage() {
                   </div>
                 </div>
 
-                <div>
-                  <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">
-                    {quiz.category || "Geral"}
-                  </p>
-                  <h3 className="text-lg font-bold text-slate-900 leading-snug">{quiz.title}</h3>
-                </div>
+                <h3 className="text-lg font-bold text-slate-900 leading-snug">{quiz.title}</h3>
 
                 <div className="flex items-center gap-4 text-xs text-slate-500 pt-3 border-t border-slate-100">
                   <span className="flex items-center gap-1.5">
@@ -326,7 +329,7 @@ export default function PhishingTrainingPage() {
                   </span>
                   <span className="ml-auto inline-flex items-center gap-1 text-amber-600 font-bold">
                     <FiStar className="w-3.5 h-3.5" />
-                    {quiz.xp} XP
+                    {quiz.total_xp} XP
                   </span>
                 </div>
               </div>
@@ -356,8 +359,8 @@ export default function PhishingTrainingPage() {
                 </h3>
                 <p className="text-sm text-slate-500 mt-1">
                   {step === 1
-                    ? "Defina o título, categoria e dificuldade."
-                    : `Preencha ${requiredCount} perguntas com 5 alternativas e marque a correta.`}
+                    ? "Defina o título e a categoria."
+                    : "Adicione perguntas e marque a alternativa correta. Cada pergunta tem sua dificuldade."}
                 </p>
               </div>
               <button
@@ -405,36 +408,6 @@ export default function PhishingTrainingPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Dificuldade</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["Fácil", "Médio", "Difícil"] as Difficulty[]).map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => handleDifficultyChange(d)}
-                        className={`py-3 rounded-xl text-sm font-semibold border-2 transition flex flex-col items-center gap-0.5 ${
-                          form.difficulty === d
-                            ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                            : "border-slate-200 text-slate-600 hover:border-slate-300"
-                        }`}
-                      >
-                        <span>{d}</span>
-                        <span className="text-[11px] font-medium opacity-80">
-                          {REQUIRED_QUESTIONS[d]} perguntas
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-start gap-2 mt-1 p-3 rounded-lg bg-indigo-50/60 border border-indigo-100">
-                    <FiAlertCircle className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-indigo-800">
-                      Dificuldade <strong>{form.difficulty}</strong> exige exatamente{" "}
-                      <strong>{requiredCount} perguntas</strong> de múltipla escolha (5 alternativas cada).
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
                   <label htmlFor="description" className="text-sm font-medium text-slate-700">
                     Descrição
                   </label>
@@ -446,6 +419,13 @@ export default function PhishingTrainingPage() {
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     className="input resize-none"
                   />
+                </div>
+
+                <div className="flex items-start gap-2 mt-1 p-3 rounded-lg bg-indigo-50/60 border border-indigo-100">
+                  <FiAlertCircle className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-indigo-800">
+                    A dificuldade é definida em cada pergunta. Você poderá adicionar quantas perguntas quiser na próxima etapa.
+                  </p>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
@@ -472,19 +452,19 @@ export default function PhishingTrainingPage() {
                 <div className="px-6 pt-4 pb-3 border-b border-slate-100 bg-slate-50/50">
                   <div className="flex items-center justify-between text-xs mb-2">
                     <span className="font-semibold text-slate-700">
-                      Pergunta {currentIdx + 1} de {requiredCount}
+                      Pergunta {currentIdx + 1} de {questions.length}
                     </span>
                     <span className="text-slate-500">
-                      {completedCount}/{requiredCount} completas
+                      {completedCount}/{questions.length} completas · {totalXp} XP
                     </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all"
-                      style={{ width: `${(completedCount / requiredCount) * 100}%` }}
+                      style={{ width: `${(completedCount / Math.max(questions.length, 1)) * 100}%` }}
                     />
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-3">
+                  <div className="flex flex-wrap gap-1.5 mt-3 items-center">
                     {questions.map((q, i) => {
                       const complete = isQuestionComplete(q);
                       const active = i === currentIdx;
@@ -506,6 +486,14 @@ export default function PhishingTrainingPage() {
                         </button>
                       );
                     })}
+                    <button
+                      type="button"
+                      onClick={addQuestion}
+                      title="Adicionar pergunta"
+                      className="w-7 h-7 rounded-lg text-xs font-bold transition bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 flex items-center justify-center"
+                    >
+                      <FiPlus className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
 
@@ -514,7 +502,42 @@ export default function PhishingTrainingPage() {
                     const q = questions[currentIdx];
                     return (
                       <>
-                        <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-sm font-medium text-slate-700">
+                            Dificuldade desta pergunta
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => removeQuestion(currentIdx)}
+                            disabled={questions.length === 1}
+                            title="Remover pergunta"
+                            className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-700 hover:border-red-200 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1.5"
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                            Remover
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {DIFFICULTIES.map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => updateQuestion(currentIdx, { difficulty: d })}
+                              className={`py-3 rounded-xl text-sm font-semibold border-2 transition flex flex-col items-center gap-0.5 ${
+                                q.difficulty === d
+                                  ? `${difficultyStyle[d]} border-current`
+                                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+                              }`}
+                            >
+                              <span>{d}</span>
+                              <span className="text-[11px] font-medium opacity-80">
+                                {xpForDifficulty[d]} XP
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="space-y-1.5 pt-2">
                           <label className="text-sm font-medium text-slate-700">
                             Enunciado da pergunta {currentIdx + 1}
                           </label>
@@ -588,6 +611,14 @@ export default function PhishingTrainingPage() {
                   <div className="flex gap-2">
                     <button
                       type="button"
+                      onClick={addQuestion}
+                      className="px-4 py-2.5 rounded-xl bg-white border-2 border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-50 transition flex items-center gap-2"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      Adicionar pergunta
+                    </button>
+                    <button
+                      type="button"
                       disabled={currentIdx === 0}
                       onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
                       className="px-4 py-2.5 rounded-xl bg-white border-2 border-slate-200 text-slate-700 font-semibold hover:border-slate-300 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
@@ -595,10 +626,10 @@ export default function PhishingTrainingPage() {
                       <FiArrowLeft className="w-4 h-4" />
                       Anterior
                     </button>
-                    {currentIdx < requiredCount - 1 ? (
+                    {currentIdx < questions.length - 1 ? (
                       <button
                         type="button"
-                        onClick={() => setCurrentIdx((i) => Math.min(requiredCount - 1, i + 1))}
+                        onClick={() => setCurrentIdx((i) => Math.min(questions.length - 1, i + 1))}
                         className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition flex items-center gap-2"
                       >
                         Próxima

@@ -3,10 +3,14 @@ from typing import List, Optional
 from datetime import datetime
 
 
+XP_FOR_DIFFICULTY = {"Fácil": 100, "Médio": 180, "Difícil": 260}
+
+
 class QuizQuestionBase(BaseModel):
     text: str
     alternatives: List[str]
     correct_index: int
+    difficulty: str = "Fácil"
 
     @field_validator("alternatives")
     @classmethod
@@ -24,6 +28,13 @@ class QuizQuestionBase(BaseModel):
             raise ValueError("correct_index deve estar entre 0 e 4")
         return v
 
+    @field_validator("difficulty")
+    @classmethod
+    def difficulty_valid(cls, v: str) -> str:
+        if v not in XP_FOR_DIFFICULTY:
+            raise ValueError("Dificuldade inválida; use Fácil, Médio ou Difícil")
+        return v
+
 
 class QuizQuestionCreate(QuizQuestionBase):
     pass
@@ -32,6 +43,7 @@ class QuizQuestionCreate(QuizQuestionBase):
 class QuizQuestionRead(QuizQuestionBase):
     id: int
     position: int
+    xp: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -43,6 +55,8 @@ class QuizQuestionPublic(BaseModel):
     position: int
     text: str
     alternatives: List[str]
+    difficulty: Optional[str] = None
+    xp: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -52,8 +66,6 @@ class QuizBase(BaseModel):
     title: str
     description: Optional[str] = None
     category: Optional[str] = None
-    difficulty: str = "Fácil"
-    xp: int = 100
 
 
 class QuizCreate(QuizBase):
@@ -64,8 +76,6 @@ class QuizUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
-    difficulty: Optional[str] = None
-    xp: Optional[int] = None
     questions: Optional[List[QuizQuestionCreate]] = None
 
 
@@ -84,9 +94,8 @@ class QuizSummary(BaseModel):
     id: int
     title: str
     category: Optional[str] = None
-    difficulty: str
-    xp: int
     question_count: int
+    total_xp: int
 
     class Config:
         from_attributes = True
@@ -98,8 +107,7 @@ class QuizPublic(BaseModel):
     title: str
     description: Optional[str] = None
     category: Optional[str] = None
-    difficulty: str
-    xp: int
+    total_xp: int
     questions: List[QuizQuestionPublic]
 
     class Config:

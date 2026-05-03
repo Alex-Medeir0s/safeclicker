@@ -3,8 +3,9 @@
 
 Compatível com PostgreSQL (information_schema). As tabelas novas (quizzes,
 quiz_questions, quiz_responses) são criadas automaticamente pelo
-Base.metadata.create_all() ao subir a aplicação; este script apenas
-garante que a coluna quiz_id existe em campaigns.
+Base.metadata.create_all(); este script garante que quiz_id existe em
+campaigns e que quiz_questions tem as colunas difficulty/xp (mudança
+posterior, dificuldade por pergunta em vez de por quiz).
 """
 
 import sys
@@ -19,32 +20,55 @@ from sqlalchemy import text
 import app.models  # noqa: F401
 
 
-def add_quiz_id_column():
+def column_exists(db, table: str, column: str) -> bool:
+    row = db.execute(
+        text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = :table AND column_name = :column"
+        ),
+        {"table": table, "column": column},
+    ).fetchone()
+    return row is not None
+
+
+def migrate():
     db = SessionLocal()
     try:
-        # Cria todas as tabelas que ainda não existirem (Quiz, QuizQuestion, QuizResponse)
         Base.metadata.create_all(bind=engine)
         print("✓ Tabelas de quiz garantidas (criadas se não existiam)")
 
-        result = db.execute(
-            text(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_name = 'campaigns' AND column_name = 'quiz_id'"
-            )
-        ).fetchone()
-
-        if not result:
+        # campaigns.quiz_id
+        if not column_exists(db, "campaigns", "quiz_id"):
             db.execute(
                 text(
                     "ALTER TABLE campaigns ADD COLUMN quiz_id INTEGER "
                     "REFERENCES quizzes(id)"
                 )
             )
-            db.commit()
-            print("✓ Coluna 'quiz_id' adicionada em campaigns")
+            print("✓ campaigns.quiz_id adicionada")
         else:
-            print("✓ Coluna 'quiz_id' já existe em campaigns")
+            print("✓ campaigns.quiz_id já existia")
 
+        # quiz_questions.difficulty
+        if not column_exists(db, "quiz_questions", "difficulty"):
+            db.execute(text("ALTER TABLE quiz_questions ADD COLUMN difficulty VARCHAR"))
+            print("✓ quiz_questions.difficulty adicionada")
+        else:
+            print("✓ quiz_questions.difficulty já existia")
+
+        # quiz_questions.xp
+        if not column_exists(db, "quiz_questions", "xp"):
+            db.execute(text("ALTER TABLE quiz_questions ADD COLUMN xp INTEGER"))
+            print("✓ quiz_questions.xp adicionada")
+        else:
+            print("✓ quiz_questions.xp já existia")
+
+        # Relaxa NOT NULL em quizzes.difficulty / quizzes.xp (caso tenham sido criadas antes)
+        db.execute(text("ALTER TABLE quizzes ALTER COLUMN difficulty DROP NOT NULL"))
+        db.execute(text("ALTER TABLE quizzes ALTER COLUMN xp DROP NOT NULL"))
+        print("✓ quizzes.difficulty / xp agora aceitam NULL")
+
+        db.commit()
         print("✓ Migração concluída")
     except Exception as exc:
         db.rollback()
@@ -55,4 +79,4 @@ def add_quiz_id_column():
 
 
 if __name__ == "__main__":
-    add_quiz_id_column()
+    migrate()

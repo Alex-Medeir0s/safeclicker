@@ -1,5 +1,4 @@
-from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,27 +13,17 @@ from app.schemas.quiz import (
     QuizRead,
     QuizSummary,
     QuizUpdate,
+    XP_FOR_DIFFICULTY,
 )
 
 
 router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
 
-REQUIRED_QUESTIONS = {"Fácil": 15, "Médio": 10, "Difícil": 5}
-
-
-def _validate_question_count(difficulty: str, question_count: int) -> None:
-    expected = REQUIRED_QUESTIONS.get(difficulty)
-    if expected is None:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Dificuldade inválida: {difficulty}",
-        )
-    if question_count != expected:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Dificuldade {difficulty} exige exatamente {expected} perguntas",
-        )
+def _xp_for(difficulty: Optional[str]) -> int:
+    if not difficulty:
+        return 0
+    return XP_FOR_DIFFICULTY.get(difficulty, 0)
 
 
 @router.get("", response_model=List[QuizSummary])
@@ -47,14 +36,14 @@ def list_quizzes(
     quizzes = db.query(Quiz).order_by(Quiz.created_at.desc()).offset(skip).limit(limit).all()
     summaries = []
     for quiz in quizzes:
+        total_xp = sum(_xp_for(q.difficulty) for q in quiz.questions)
         summaries.append(
             QuizSummary(
                 id=quiz.id,
                 title=quiz.title,
                 category=quiz.category,
-                difficulty=quiz.difficulty,
-                xp=quiz.xp,
                 question_count=len(quiz.questions),
+                total_xp=total_xp,
             )
         )
     return summaries
@@ -78,14 +67,13 @@ def create_quiz(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _validate_question_count(payload.difficulty, len(payload.questions))
+    if not payload.questions:
+        raise HTTPException(status_code=400, detail="Adicione ao menos uma pergunta")
 
     quiz = Quiz(
         title=payload.title,
         description=payload.description,
         category=payload.category,
-        difficulty=payload.difficulty,
-        xp=payload.xp,
         created_by=current_user.id,
     )
     for idx, question in enumerate(payload.questions):
@@ -95,6 +83,8 @@ def create_quiz(
                 text=question.text,
                 alternatives=question.alternatives,
                 correct_index=question.correct_index,
+                difficulty=question.difficulty,
+                xp=_xp_for(question.difficulty),
             )
         )
 
@@ -102,9 +92,10 @@ def create_quiz(
         db.add(quiz)
         db.commit()
         db.refresh(quiz)
-    except SQLAlchemyError:
+    except SQLAlchemyError as exc:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Erro ao criar quiz")
+        print(f"[create_quiz] erro SQL: {exc}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar quiz: {exc}")
     return quiz
 
 
@@ -121,33 +112,35 @@ def update_quiz(
 
     data = payload.dict(exclude_unset=True)
     new_questions = data.pop("questions", None)
-    new_difficulty = data.get("difficulty", quiz.difficulty)
-
-    if new_questions is not None:
-        _validate_question_count(new_difficulty, len(new_questions))
 
     for key, value in data.items():
         setattr(quiz, key, value)
 
     if new_questions is not None:
+        if not new_questions:
+            raise HTTPException(status_code=400, detail="Adicione ao menos uma pergunta")
         quiz.questions.clear()
         db.flush()
         for idx, question in enumerate(new_questions):
+            difficulty = question.get("difficulty") or "Fácil"
             quiz.questions.append(
                 QuizQuestion(
                     position=idx,
                     text=question["text"],
                     alternatives=question["alternatives"],
                     correct_index=question["correct_index"],
+                    difficulty=difficulty,
+                    xp=_xp_for(difficulty),
                 )
             )
 
     try:
         db.commit()
         db.refresh(quiz)
-    except SQLAlchemyError:
+    except SQLAlchemyError as exc:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Erro ao atualizar quiz")
+        print(f"[update_quiz] erro SQL: {exc}")
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar quiz: {exc}")
     return quiz
 
 

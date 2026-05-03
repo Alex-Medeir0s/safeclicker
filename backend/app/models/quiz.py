@@ -11,8 +11,8 @@ class Quiz(Base):
     title = Column(String, nullable=False, index=True)
     description = Column(Text, nullable=True)
     category = Column(String, nullable=True)
-    difficulty = Column(String, nullable=False, default="Fácil")
-    xp = Column(Integer, nullable=False, default=100)
+    difficulty = Column(String, nullable=True)
+    xp = Column(Integer, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -36,6 +36,8 @@ class QuizQuestion(Base):
     text = Column(Text, nullable=False)
     alternatives = Column(JSON, nullable=False)
     correct_index = Column(Integer, nullable=False)
+    difficulty = Column(String, nullable=True)
+    xp = Column(Integer, nullable=True)
 
     quiz = relationship("Quiz", back_populates="questions")
 

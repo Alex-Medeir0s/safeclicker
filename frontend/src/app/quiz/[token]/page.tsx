@@ -12,6 +12,8 @@ interface QuizQuestion {
   position: number;
   text: string;
   alternatives: string[];
+  difficulty: Difficulty | null;
+  xp: number | null;
 }
 
 interface QuizPublic {
@@ -19,8 +21,7 @@ interface QuizPublic {
   title: string;
   description: string | null;
   category: string | null;
-  difficulty: Difficulty;
-  xp: number;
+  total_xp: number;
   questions: QuizQuestion[];
 }
 
@@ -158,16 +159,11 @@ export default function QuizTakePage({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         <header className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-indigo-600 font-semibold mb-1">
-                {quiz.category || "Treinamento de conscientização"}
-              </p>
-              <h1 className="text-2xl font-bold text-slate-900">{quiz.title}</h1>
-            </div>
-            <span className={`inline-flex items-center text-xs font-semibold border px-2.5 py-1 rounded-full ${difficultyStyle[quiz.difficulty]}`}>
-              {quiz.difficulty}
-            </span>
+          <div>
+            <p className="text-[11px] uppercase tracking-wider text-indigo-600 font-semibold mb-1">
+              {quiz.category || "Treinamento de conscientização"}
+            </p>
+            <h1 className="text-2xl font-bold text-slate-900">{quiz.title}</h1>
           </div>
           {quiz.description && <p className="text-slate-600 text-sm">{quiz.description}</p>}
           <div className="flex items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
@@ -181,7 +177,7 @@ export default function QuizTakePage({
             </span>
             <span className="ml-auto inline-flex items-center gap-1 text-amber-600 font-bold">
               <FiStar className="w-3.5 h-3.5" />
-              {quiz.xp} XP
+              {quiz.total_xp} XP
             </span>
           </div>
         </header>
@@ -228,7 +224,16 @@ export default function QuizTakePage({
           </div>
 
           <div className="p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">{currentQuestion.text}</h2>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-lg font-semibold text-slate-900 flex-1">{currentQuestion.text}</h2>
+              {currentQuestion.difficulty && (
+                <span
+                  className={`inline-flex items-center text-xs font-semibold border px-2.5 py-1 rounded-full flex-shrink-0 ${difficultyStyle[currentQuestion.difficulty]}`}
+                >
+                  {currentQuestion.difficulty}
+                </span>
+              )}
+            </div>
             <div className="space-y-2">
               {currentQuestion.alternatives.map((alt, altIdx) => {
                 const isSelected = answers[currentIdx] === altIdx;
