@@ -83,6 +83,7 @@ async def send_campaign_now(db: Session, campaign: Campaign) -> dict:
 
         tracking_url = f"{base_url}/campaigns/track/{token}"
         html = campaign.html_template or ""
+        logger.info("Gerando tracking_url %s para %s (campaign=%s, send_id=%s)", tracking_url, user.email, campaign.id, send_row.id)
 
         html = (
             html.replace("{{tracking_url}}", tracking_url)

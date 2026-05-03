@@ -49,6 +49,7 @@ type QuizDetail = {
 };
 
 const ALTERNATIVE_LABELS = ["A", "B", "C", "D", "E"];
+const MIN_ALTERNATIVES = 3;
 const DIFFICULTIES: Difficulty[] = ["Fácil", "Médio", "Difícil"];
 
 const xpForDifficulty: Record<Difficulty, number> = {
@@ -63,9 +64,29 @@ const difficultyStyle: Record<Difficulty, string> = {
   Difícil: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
+const getAlternativeLabel = (index: number): string => {
+  let value = index;
+  let label = "";
+
+  while (value >= 0) {
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26) - 1;
+  }
+
+  return label;
+};
+
+const normalizeAlternatives = (alternatives: string[]): string[] => {
+  const normalized = [...alternatives];
+  while (normalized.length < MIN_ALTERNATIVES) {
+    normalized.push("");
+  }
+  return normalized;
+};
+
 const makeEmptyQuestion = (): Question => ({
   text: "",
-  alternatives: ["", "", "", "", ""],
+  alternatives: ["", "", ""],
   correctIndex: null,
   difficulty: "Fácil",
 });
@@ -84,7 +105,7 @@ export default function PhishingTrainingPage() {
 
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState({ title: "", category: "", description: "" });
-  const [questions, setQuestions] = useState<Question[]>([makeEmptyQuestion()]);
+  const [questions, setQuestions] = useState<Question[]>([makeEmptyQuestion(), makeEmptyQuestion(), makeEmptyQuestion()]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -118,7 +139,7 @@ export default function PhishingTrainingPage() {
 
   const resetForm = () => {
     setForm({ title: "", category: "", description: "" });
-    setQuestions([makeEmptyQuestion()]);
+    setQuestions([makeEmptyQuestion(), makeEmptyQuestion(), makeEmptyQuestion()]);
     setCurrentIdx(0);
     setStep(1);
     setEditingId(null);
@@ -143,6 +164,12 @@ export default function PhishingTrainingPage() {
     );
   };
 
+  const addAlternative = (qIdx: number) => {
+    setQuestions((prev) =>
+      prev.map((q, i) => (i === qIdx ? { ...q, alternatives: [...q.alternatives, ""] } : q))
+    );
+  };
+
   const addQuestion = () => {
     setQuestions((prev) => {
       const next = [...prev, makeEmptyQuestion()];
@@ -152,8 +179,13 @@ export default function PhishingTrainingPage() {
   };
 
   const removeQuestion = (idx: number) => {
-    if (questions.length === 1) {
-      showFeedback("error", "O quiz precisa ter ao menos uma pergunta");
+    // As três primeiras perguntas são fixas e não podem ser removidas
+    if (idx < 3) {
+      showFeedback("error", "As três primeiras perguntas são fixas e não podem ser removidas");
+      return;
+    }
+    if (questions.length <= 3) {
+      showFeedback("error", "O quiz precisa ter ao menos 3 perguntas");
       return;
     }
     setQuestions((prev) => prev.filter((_, i) => i !== idx));
@@ -174,8 +206,8 @@ export default function PhishingTrainingPage() {
   };
 
   const handleSave = async () => {
-    if (questions.length === 0) {
-      showFeedback("error", "Adicione ao menos uma pergunta");
+    if (questions.length < 3) {
+      showFeedback("error", "Adicione ao menos 3 perguntas");
       return;
     }
     const firstIncomplete = questions.findIndex((q) => !isQuestionComplete(q));
@@ -231,11 +263,15 @@ export default function PhishingTrainingPage() {
       const loaded: Question[] = quiz.questions.length
         ? quiz.questions.map((q) => ({
             text: q.text,
-            alternatives: q.alternatives,
+            alternatives: normalizeAlternatives(q.alternatives),
             correctIndex: q.correct_index,
             difficulty: (q.difficulty as Difficulty) ?? "Fácil",
           }))
-        : [makeEmptyQuestion()];
+        : [makeEmptyQuestion(), makeEmptyQuestion(), makeEmptyQuestion()];
+      // Garantir pelo menos 3 perguntas
+      while (loaded.length < 3) {
+        loaded.push(makeEmptyQuestion());
+      }
       setQuestions(loaded);
       setStep(1);
       setCurrentIdx(0);
@@ -344,9 +380,7 @@ export default function PhishingTrainingPage() {
           onClick={closeModal}
         >
           <div
-            className={`bg-white rounded-2xl shadow-2xl w-full overflow-hidden flex flex-col max-h-[92vh] ${
-              step === 1 ? "max-w-md" : "max-w-2xl"
-            }`}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-[960px] overflow-hidden flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
@@ -568,17 +602,24 @@ export default function PhishingTrainingPage() {
                                     type="button"
                                     onClick={() => updateQuestion(currentIdx, { correctIndex: altIdx })}
                                     title={isCorrect ? "Alternativa correta" : "Marcar como correta"}
-                                    className={`w-9 h-9 flex-shrink-0 rounded-lg font-bold text-sm flex items-center justify-center transition ${
+                                    className={`w-10 h-10 flex-shrink-0 rounded-lg font-bold text-xs flex flex-col items-center justify-center gap-0.5 transition ${
                                       isCorrect
                                         ? "bg-emerald-500 text-white shadow"
                                         : "bg-slate-100 text-slate-500 hover:bg-indigo-100 hover:text-indigo-700"
                                     }`}
                                   >
-                                    {isCorrect ? <FiCheckCircle className="w-4 h-4" /> : ALTERNATIVE_LABELS[altIdx]}
+                                    {isCorrect ? (
+                                      <>
+                                        <FiCheckCircle className="w-4 h-4" />
+                                        <span>{getAlternativeLabel(altIdx)}</span>
+                                      </>
+                                    ) : (
+                                      <span>{getAlternativeLabel(altIdx)}</span>
+                                    )}
                                   </button>
                                   <input
                                     type="text"
-                                    placeholder={`Alternativa ${ALTERNATIVE_LABELS[altIdx]}`}
+                                    placeholder={`Alternativa ${getAlternativeLabel(altIdx)}`}
                                     value={alt}
                                     onChange={(e) => updateAlternative(currentIdx, altIdx, e.target.value)}
                                     className="flex-1 px-3 py-2 rounded-lg border-2 border-transparent bg-transparent text-sm focus:border-indigo-300 focus:bg-white outline-none transition"
@@ -586,6 +627,14 @@ export default function PhishingTrainingPage() {
                                 </div>
                               );
                             })}
+                            <button
+                              type="button"
+                              onClick={() => addAlternative(currentIdx)}
+                              className="w-full mt-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-300 transition flex items-center justify-center gap-2 text-sm font-semibold"
+                            >
+                              <FiPlus className="w-4 h-4" />
+                              Adicionar alternativa
+                            </button>
                           </div>
                           {q.correctIndex === null && (
                             <p className="text-xs text-amber-600 flex items-center gap-1.5 pt-1">

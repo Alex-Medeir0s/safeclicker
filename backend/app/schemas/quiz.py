@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -14,19 +14,32 @@ class QuizQuestionBase(BaseModel):
 
     @field_validator("alternatives")
     @classmethod
-    def must_have_five_alternatives(cls, v: List[str]) -> List[str]:
-        if len(v) != 5:
-            raise ValueError("Cada pergunta precisa ter exatamente 5 alternativas")
+    def must_have_minimum_alternatives(cls, v: List[str]) -> List[str]:
+        if len(v) < 3:
+            raise ValueError("Cada pergunta precisa ter ao menos 3 alternativas")
         if any(not (a or "").strip() for a in v):
             raise ValueError("Todas as alternativas devem ser preenchidas")
         return v
 
     @field_validator("correct_index")
     @classmethod
-    def correct_index_in_range(cls, v: int) -> int:
-        if v < 0 or v > 4:
-            raise ValueError("correct_index deve estar entre 0 e 4")
+    def correct_index_non_negative(cls, v: int) -> int:
+        if v is None:
+            raise ValueError("correct_index é obrigatório")
+        if v < 0:
+            raise ValueError("correct_index deve ser maior ou igual a 0")
         return v
+
+    @model_validator(mode="after")
+    def check_correct_index_within_alternatives(self):
+        # Validação cross-field: correct_index deve estar dentro do intervalo de alternativas
+        if self.correct_index is None:
+            raise ValueError("correct_index é obrigatório")
+        if not isinstance(self.alternatives, list):
+            raise ValueError("alternatives inválidas")
+        if self.correct_index < 0 or self.correct_index >= len(self.alternatives):
+            raise ValueError("correct_index fora do intervalo das alternativas")
+        return self
 
     @field_validator("difficulty")
     @classmethod
