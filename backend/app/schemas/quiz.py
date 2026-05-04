@@ -139,3 +139,28 @@ class QuizSubmitResponse(BaseModel):
     total_questions: int
     points_earned: int
     completed_at: datetime
+
+
+class UserQuizResponse(BaseModel):
+    """Resposta de um usuário em um quiz"""
+    quiz_id: int
+    quiz_title: str
+    quiz_category: Optional[str] = None
+    correct_count: int
+    total_questions: int
+    points_earned: int
+    submitted_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DepartmentUserRanking(BaseModel):
+    """Ranking de usuários por pontos no departamento"""
+    user_id: int
+    full_name: str
+    email: str
+    total_points: int
+
+    class Config:
+        from_attributes = True

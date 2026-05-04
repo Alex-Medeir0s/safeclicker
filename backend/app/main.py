@@ -5,9 +5,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes import health, users, campaigns, templates, departments, auth, metrics, quizzes
 from app.core.database import Base, engine
 from app.services.campaign_scheduler import campaign_scheduler_loop
+from app.core.config import get_settings
+from app.core.config import get_settings
 
 # Create tables  
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Warning: Could not create tables at startup: {e}")
+    pass
+
+# Log database URL for debugging (do NOT print in production)
+try:
+    settings = get_settings()
+    print(f"[STARTUP] Using DATABASE_URL={settings.database_url}")
+except Exception:
+    print("[STARTUP] Could not read settings")
+
+# Log database URL for debugging (do NOT print in production)
+try:
+    settings = get_settings()
+    print(f"[STARTUP] Using DATABASE_URL={settings.database_url}")
+except Exception:
+    print("[STARTUP] Could not read settings")
 
 app = FastAPI(
     title="SafeClicker API",

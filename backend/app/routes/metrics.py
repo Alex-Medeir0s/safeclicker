@@ -70,6 +70,17 @@ class SentCampaign(BaseModel):
     last_sent_at: Optional[datetime]
 
 
+class CollaboratorPhishingSend(BaseModel):
+    send_id: int
+    campaign_id: int
+    campaign_name: str
+    sent_at: Optional[datetime]
+    clicked: bool = False
+    clicked_at: Optional[datetime] = None
+    training_completed: bool = False
+    training_completed_at: Optional[datetime] = None
+
+
 class MetricsSummary(BaseModel):
     total_campaigns: int
     active_campaigns: int
@@ -87,6 +98,7 @@ class DashboardMetrics(BaseModel):
     department_stats: List[DepartmentStat]
     recent_campaigns: List[RecentCampaign]
     sent_campaigns: List[SentCampaign] = []
+    collaborator_phishing_sends: List[CollaboratorPhishingSend] = []
     collaborators: List[CollaboratorStat] = []
 
 
@@ -292,6 +304,7 @@ async def get_dashboard_metrics(
             )
 
     sent_campaigns: List[SentCampaign] = []
+    collaborator_phishing_sends: List[CollaboratorPhishingSend] = []
     if current_user.role == UserRole.GESTOR and current_user.department_id:
         sent_campaigns_raw = (
             db.query(
@@ -325,6 +338,39 @@ async def get_dashboard_metrics(
                     clicks=clicks,
                     click_rate=(clicks / sends * 100) if sends > 0 else 0,
                     last_sent_at=row.last_sent_at,
+                )
+            )
+
+    if current_user.role == UserRole.COLABORADOR:
+        collaborator_sends_raw = (
+            db.query(
+                CampaignSend.id.label("send_id"),
+                Campaign.id.label("campaign_id"),
+                Campaign.name.label("campaign_name"),
+                CampaignSend.sent_at.label("sent_at"),
+                func.max(ClickEvent.created_at).label("clicked_at"),
+                func.max(TrainingCompletion.completed_at).label("training_completed_at"),
+            )
+            .join(Campaign, CampaignSend.campaign_id == Campaign.id)
+            .outerjoin(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id)
+            .outerjoin(TrainingCompletion, CampaignSend.id == TrainingCompletion.campaign_send_id)
+            .filter(CampaignSend.user_id == current_user.id)
+            .group_by(CampaignSend.id, Campaign.id, Campaign.name, CampaignSend.sent_at)
+            .order_by(CampaignSend.sent_at.desc())
+            .all()
+        )
+
+        for row in collaborator_sends_raw:
+            collaborator_phishing_sends.append(
+                CollaboratorPhishingSend(
+                    send_id=row.send_id,
+                    campaign_id=row.campaign_id,
+                    campaign_name=row.campaign_name,
+                    sent_at=row.sent_at,
+                    clicked=row.clicked_at is not None,
+                    clicked_at=row.clicked_at,
+                    training_completed=row.training_completed_at is not None,
+                    training_completed_at=row.training_completed_at,
                 )
             )
 
@@ -385,6 +431,10 @@ async def get_dashboard_metrics(
             clicks_count = clicks_count.filter(CampaignSend.user_id == current_user.id)
             trainings_count = trainings_count.filter(CampaignSend.user_id == current_user.id)
         
+        # Para colaborador, só exibir campanhas que ele realmente recebeu.
+        if current_user.role == UserRole.COLABORADOR and users_count == 0:
+            continue
+
         clicks_count = clicks_count.scalar() or 0
         trainings_count = trainings_count.scalar() or 0
         
@@ -416,6 +466,7 @@ async def get_dashboard_metrics(
         department_stats=department_stats,
         recent_campaigns=recent_campaigns,
         sent_campaigns=sent_campaigns,
+        collaborator_phishing_sends=collaborator_phishing_sends,
         collaborators=collaborator_stats
     )
 

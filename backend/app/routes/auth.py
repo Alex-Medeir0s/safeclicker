@@ -22,6 +22,50 @@ def simple_verify(plain_password: str, hashed_password: str) -> bool:
     return simple_hash(plain_password) == hashed_password
 
 
+@router.get("/debug-login", include_in_schema=False)
+async def debug_login_test(email: str, password: str, db: Session = Depends(get_db)):
+    """Endpoint de debug para testar autenticação"""
+    try:
+        # Listar todos os usuários primeiro
+        all_users = db.query(User).all()
+        user_list = [{"email": u.email, "name": u.full_name} for u in all_users]
+        
+        email_normalized = email.strip().lower()
+        
+        # Tentar encontrar por email exato
+        user_exact = db.query(User).filter(User.email == email).first()
+        
+        # Tentar encontrar com lower
+        user_lower = db.query(User).filter(func.lower(User.email) == email_normalized).first()
+        
+        if not user_lower:
+            return {
+                "error": "User not found",
+                "email_input": email,
+                "email_normalized": email_normalized,
+                "all_users": user_list,
+                "found_exact": user_exact is not None,
+                "found_lower": user_lower is not None
+            }
+        
+        # Verificar hash
+        test_hash = hashlib.sha256(password.encode()).hexdigest()
+        matches = test_hash == user_lower.hashed_password
+        
+        return {
+            "user_found": True,
+            "email": user_lower.email,
+            "password_input": password,
+            "hash_calculated": test_hash,
+            "hash_stored": user_lower.hashed_password,
+            "hashes_match": matches,
+            "user_active": user_lower.is_active
+        }
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
+
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -40,6 +84,10 @@ class LoginResponse(BaseModel):
 @router.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Login endpoint - retorna token JWT com role e department_id"""
+    print(f"\n=== LOGIN DEBUG START ===")
+    print(f"Request email: {request.email}")
+    print(f"Request password: {request.password}")
+    
     # Normaliza o email para evitar erro de maiúsculas/minúsculas ou espaços
     email_normalized = request.email.strip().lower()
     print(f"DEBUG: Login attempt for email: {request.email} (normalized: {email_normalized})")

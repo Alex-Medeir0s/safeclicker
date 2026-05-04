@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -522,6 +523,9 @@ def submit_quiz(
         raise HTTPException(status_code=400, detail="Token é obrigatório")
 
     send_row = db.query(CampaignSend).filter(CampaignSend.token == token).first()
+    print(f"[QUIZ SUBMIT] Token: {token}, send_row: {send_row}")
+    if send_row:
+        print(f"[QUIZ SUBMIT] send_row.id: {send_row.id}, send_row.user_id: {send_row.user_id}")
     if not send_row:
         raise HTTPException(status_code=404, detail="Token inválido")
 
@@ -592,8 +596,10 @@ def submit_quiz(
         db.add(response_row)
         db.commit()
         db.refresh(completion)
+        print(f"[QUIZ SUBMIT SUCCESS] campaign_send_id: {send_row.id}, user_id: {send_row.user_id}, quiz_id: {quiz.id}, points: {points_earned}")
     except IntegrityError:
         db.rollback()
+        print(f"[QUIZ SUBMIT] IntegrityError - trying to fetch existing completion")
         existing_completion = (
             db.query(TrainingCompletion)
             .filter(TrainingCompletion.campaign_send_id == send_row.id)
@@ -608,6 +614,10 @@ def submit_quiz(
                 completed_at=existing_completion.completed_at,
             )
         raise HTTPException(status_code=500, detail="Erro ao registrar conclusão")
+    except Exception as e:
+        db.rollback()
+        print(f"[QUIZ SUBMIT ERROR] {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao registrar: {str(e)}")
 
     return QuizSubmitResponse(
         recorded=True,
@@ -616,4 +626,86 @@ def submit_quiz(
         points_earned=points_earned,
         completed_at=completion.completed_at,
     )
+
+
+@router.get("/quiz/user-responses", response_model=List[dict])
+def get_user_quiz_responses(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Obtém o histórico de respostas de quiz do usuário logado."""
+    import traceback
+    print(f"[USER RESPONSES] Fetching for user_id: {current_user.id}, email: {current_user.email}")
+    try:
+        quiz_responses = (
+            db.query(QuizResponse)
+            .join(CampaignSend, QuizResponse.campaign_send_id == CampaignSend.id)
+            .join(Quiz, QuizResponse.quiz_id == Quiz.id)
+            .filter(CampaignSend.user_id == current_user.id)
+            .order_by(QuizResponse.submitted_at.desc())
+            .all()
+        )
+
+        print(f"[USER RESPONSES] Found {len(quiz_responses)} responses")
+
+        result = []
+        for response in quiz_responses:
+            try:
+                print(f"[USER RESPONSES] Response: quiz_id={response.quiz_id}, points={response.points_earned}, campaign_send_id={response.campaign_send_id}")
+                result.append({
+                    "quiz_id": response.quiz_id,
+                    "quiz_title": response.quiz.title if response.quiz else "Unknown",
+                    "quiz_category": response.quiz.category if response.quiz else None,
+                    "correct_count": response.correct_count,
+                    "total_questions": response.total_questions,
+                    "points_earned": response.points_earned,
+                    "submitted_at": response.submitted_at.isoformat() if response.submitted_at else None,
+                })
+            except Exception:
+                print("[USER RESPONSES] Error serializing response:")
+                traceback.print_exc()
+        return result
+    except Exception as e:
+        print("[USER RESPONSES] Unexpected error:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Erro ao obter respostas do usuário")
+
+
+@router.get("/quiz/department-ranking", response_model=List[dict])
+def get_department_ranking(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Obtém o ranking de usuários do departamento do gestor com soma de pontos."""
+    if not current_user.department_id:
+        raise HTTPException(status_code=400, detail="Usuário não tem departamento associado")
+    
+    try:
+        # Query para obter todos os usuários do departamento
+        department_users = db.query(User).filter(
+            User.department_id == current_user.department_id
+        ).all()
+        
+        result = []
+        for user in department_users:
+            # Calcular pontos totais para cada usuário
+            total_points = (
+                db.query(func.coalesce(func.sum(QuizResponse.points_earned), 0))
+                .join(CampaignSend, QuizResponse.campaign_send_id == CampaignSend.id)
+                .filter(CampaignSend.user_id == user.id)
+                .scalar() or 0
+            )
+            
+            result.append({
+                "user_id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "total_points": int(total_points),
+            })
+        
+        # Ordenar por pontos descending
+        result.sort(key=lambda x: x["total_points"], reverse=True)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao obter ranking: {str(e)}")
 

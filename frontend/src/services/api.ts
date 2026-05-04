@@ -1,7 +1,14 @@
 import axios from "axios";
 
 const browserHost = typeof window !== "undefined" ? window.location.hostname : "127.0.0.1";
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || `http://${browserHost}:8000`).replace(/\/$/, "");
+// Normalizar hosts que podem aparecer em ambiente de dev (0.0.0.0 ou vazio)
+const normalizedHost = browserHost === "0.0.0.0" || !browserHost ? "127.0.0.1" : browserHost;
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || `http://${normalizedHost}:8000`).replace(/\/$/, "");
+
+// Log útil para debugging em dev: mostra qual baseURL o frontend está usando
+if (typeof window !== "undefined") {
+  console.log("[api] API_BASE_URL:", API_BASE_URL);
+}
 
 export const api = axios.create({
   // Em ambiente local de rede, usa o hostname atual do navegador por padrão.
