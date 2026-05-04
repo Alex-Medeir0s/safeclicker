@@ -122,6 +122,7 @@ export default function PhishingTrainingPage() {
 
   // Para Colaborador
   const [userResponses, setUserResponses] = useState<UserQuizResponse[]>([]);
+  const totalUserPoints = userResponses.reduce((sum, response) => sum + response.points_earned, 0);
 
   const showFeedback = (type: "success" | "error" | "info", message: string) => {
     setFeedback({ type, message });
@@ -335,7 +336,10 @@ export default function PhishingTrainingPage() {
 
   const completedCount = questions.filter(isQuestionComplete).length;
   const currentQuestion = questions[currentIdx];
-  const isLast = currentIdx === questions.length - 1;
+  const totalPossiblePoints = questions.reduce(
+    (acc, question) => acc + xpForDifficulty[question.difficulty],
+    0
+  );
 
   if (loading) {
     return (
@@ -446,6 +450,23 @@ export default function PhishingTrainingPage() {
               Meus Quizzes
             </h1>
             <p className="text-slate-600">Histórico de quizzes respondidos e suas pontuações</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+            <p className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total de pontos</p>
+            <div className="mt-3 flex items-end gap-3">
+              <span className="text-4xl font-bold text-amber-600">{totalUserPoints}</span>
+              <span className="text-sm text-slate-500 mb-1">pontos acumulados</span>
+            </div>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+            <p className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Quizzes respondidos</p>
+            <div className="mt-3 flex items-end gap-3">
+              <span className="text-4xl font-bold text-indigo-600">{userResponses.length}</span>
+              <span className="text-sm text-slate-500 mb-1">registros no histórico</span>
+            </div>
           </div>
         </div>
 
@@ -604,9 +625,9 @@ export default function PhishingTrainingPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="flex-1 overflow-hidden flex flex-col">
               {step === 1 ? (
-                <div className="space-y-6">
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-900 mb-2">
                       Título do Quiz <span className="text-rose-500">*</span>
@@ -645,110 +666,237 @@ export default function PhishingTrainingPage() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {questions.map((question, qIdx) => (
-                    <div key={qIdx} className={`p-4 rounded-xl border-2 transition ${
-                      qIdx === currentIdx ? "border-indigo-500 bg-indigo-50" : "border-slate-200 bg-slate-50"
-                    }`}>
-                      <div className="flex items-start justify-between mb-3">
-                        <label className="text-sm font-semibold text-slate-900">
-                          Pergunta {qIdx + 1}
-                        </label>
-                        {qIdx >= 3 && (
-                          <button
-                            onClick={() => removeQuestion(qIdx)}
-                            className="text-rose-500 hover:bg-rose-50 p-1 rounded transition"
-                          >
-                            <FiTrash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        value={question.text}
-                        onChange={(e) => updateQuestion(qIdx, { text: e.target.value })}
-                        placeholder="Digite a pergunta..."
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-
-                      {question.alternatives.map((alt, altIdx) => (
-                        <input
-                          key={altIdx}
-                          type="text"
-                          value={alt}
-                          onChange={(e) => updateAlternative(qIdx, altIdx, e.target.value)}
-                          placeholder={`Alternativa ${ALTERNATIVE_LABELS[altIdx]}`}
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      ))}
-
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={() => addAlternative(qIdx)}
-                          className="text-xs px-3 py-1 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
-                        >
-                          + Alternativa
-                        </button>
-                        <select
-                          value={question.correctIndex ?? ""}
-                          onChange={(e) => updateQuestion(qIdx, { correctIndex: Number(e.target.value) })}
-                          className="text-xs px-3 py-1 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                          <option value="">Correta?</option>
-                          {question.alternatives.map((_, idx) => (
-                            <option key={idx} value={idx}>
-                              {ALTERNATIVE_LABELS[idx]}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={question.difficulty}
-                          onChange={(e) => updateQuestion(qIdx, { difficulty: e.target.value as Difficulty })}
-                          className="text-xs px-3 py-1 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        >
-                          {DIFFICULTIES.map((d) => (
-                            <option key={d} value={d}>
-                              {d}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                <>
+                  <div className="px-6 pt-4 pb-3 border-b border-slate-100 bg-slate-50/50">
+                    <div className="flex items-center justify-between text-xs mb-2">
+                      <span className="font-semibold text-slate-700">
+                        Pergunta {currentIdx + 1} de {questions.length}
+                      </span>
+                      <span className="text-slate-500">
+                        {completedCount}/{questions.length} completas · {totalPossiblePoints} Pontos totais
+                      </span>
                     </div>
-                  ))}
+                    <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all"
+                        style={{ width: `${(completedCount / Math.max(questions.length, 1)) * 100}%` }}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mt-3 items-center">
+                      {questions.map((question, index) => {
+                        const complete = isQuestionComplete(question);
+                        const active = index === currentIdx;
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => setCurrentIdx(index)}
+                            title={`Pergunta ${index + 1}${complete ? " (completa)" : ""}`}
+                            className={`w-7 h-7 rounded-lg text-xs font-bold transition ${
+                              active ? "ring-2 ring-indigo-500 ring-offset-1" : ""
+                            } ${
+                              complete
+                                ? active
+                                  ? "bg-indigo-600 text-white"
+                                  : "bg-emerald-100 text-emerald-700"
+                                : active
+                                  ? "bg-indigo-100 text-indigo-700"
+                                  : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {index + 1}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={addQuestion}
+                        title="Adicionar pergunta"
+                        className="w-7 h-7 rounded-lg text-xs font-bold transition bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 flex items-center justify-center"
+                      >
+                        <FiPlus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
 
-                  <button
-                    onClick={addQuestion}
-                    className="w-full px-4 py-2 rounded-lg border-2 border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 transition font-semibold"
-                  >
-                    <FiPlus className="w-4 h-4 inline mr-2" /> Adicionar Pergunta
-                  </button>
-                </div>
+                  <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                    {currentQuestion && (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-sm font-medium text-slate-700">
+                            Dificuldade desta pergunta
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => removeQuestion(currentIdx)}
+                            disabled={questions.length === 1}
+                            title="Remover pergunta"
+                            className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-700 hover:border-red-200 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1.5"
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                            Remover
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          {DIFFICULTIES.map((difficulty) => (
+                            <button
+                              key={difficulty}
+                              type="button"
+                              onClick={() => updateQuestion(currentIdx, { difficulty })}
+                              className={`py-3 rounded-xl text-sm font-semibold border-2 transition flex flex-col items-center gap-0.5 ${
+                                currentQuestion.difficulty === difficulty
+                                  ? `${difficultyStyle[difficulty]} border-current`
+                                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+                              }`}
+                            >
+                              <span>{difficulty}</span>
+                              <span className="text-[11px] font-medium opacity-80">
+                                {xpForDifficulty[difficulty]} Pontos
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">
+                            Pergunta
+                          </label>
+                          <textarea
+                            rows={2}
+                            placeholder="Ex: Qual destes é um sinal típico de e-mail de phishing?"
+                            value={currentQuestion.text}
+                            onChange={(e) => updateQuestion(currentIdx, { text: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">
+                            Alternativas <span className="text-slate-400 font-normal">(marque a correta)</span>
+                          </label>
+                          <div className="space-y-2">
+                            {currentQuestion.alternatives.map((alt, altIdx) => {
+                              const isCorrect = currentQuestion.correctIndex === altIdx;
+                              return (
+                                <div
+                                  key={altIdx}
+                                  className={`flex items-stretch gap-2 p-2 rounded-xl border-2 transition ${
+                                    isCorrect ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"
+                                  }`}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => updateQuestion(currentIdx, { correctIndex: altIdx })}
+                                    title={isCorrect ? "Alternativa correta" : "Marcar como correta"}
+                                    className={`w-10 h-10 flex-shrink-0 rounded-lg font-bold text-xs flex flex-col items-center justify-center gap-0.5 transition ${
+                                      isCorrect
+                                        ? "bg-emerald-500 text-white shadow"
+                                        : "bg-slate-100 text-slate-500 hover:bg-indigo-100 hover:text-indigo-700"
+                                    }`}
+                                  >
+                                    {isCorrect ? (
+                                      <>
+                                        <FiCheckCircle className="w-4 h-4" />
+                                        <span>Certa</span>
+                                      </>
+                                    ) : (
+                                      <span>{ALTERNATIVE_LABELS[altIdx]}</span>
+                                    )}
+                                  </button>
+                                  <input
+                                    type="text"
+                                    value={alt}
+                                    onChange={(e) => updateAlternative(currentIdx, altIdx, e.target.value)}
+                                    placeholder={`Alternativa ${ALTERNATIVE_LABELS[altIdx]}`}
+                                    className="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addAlternative(currentIdx)}
+                            className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-50 transition"
+                          >
+                            <FiPlus className="w-4 h-4" />
+                            Adicionar alternativa
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
               )}
             </div>
 
-            <div className="flex items-center justify-between p-6 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => (step === 2 ? setStep(1) : closeModal())}
-                className="px-6 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition font-semibold flex items-center gap-2"
-              >
-                <FiArrowLeft className="w-4 h-4" /> {step === 2 ? "Voltar" : "Cancelar"}
-              </button>
-              <button
-                onClick={step === 1 ? handleNextStep : handleSave}
-                disabled={saving}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 transition font-semibold disabled:opacity-50 flex items-center gap-2"
-              >
-                {step === 1 ? (
-                  <>
-                    Próximo <FiArrowRight className="w-4 h-4" />
-                  </>
-                ) : (
-                  <>
-                    {saving ? "Salvando..." : "Salvar Quiz"}
-                  </>
-                )}
-              </button>
-            </div>
+            {step === 1 ? (
+              <div className="flex items-center justify-between p-6 pt-4 border-t border-slate-100">
+                <button
+                  onClick={closeModal}
+                  className="px-6 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition font-semibold flex items-center gap-2"
+                >
+                  <FiArrowLeft className="w-4 h-4" /> Cancelar
+                </button>
+                <button
+                  onClick={handleNextStep}
+                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 transition font-semibold flex items-center gap-2"
+                >
+                  Próximo <FiArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2 p-4 border-t border-slate-100 bg-slate-50/50">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="px-4 py-2.5 rounded-xl text-slate-600 font-semibold hover:bg-white transition flex items-center gap-2"
+                >
+                  <FiArrowLeft className="w-4 h-4" />
+                  Voltar
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={addQuestion}
+                    className="px-4 py-2.5 rounded-xl bg-white border-2 border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-50 transition flex items-center gap-2"
+                  >
+                    <FiPlus className="w-4 h-4" />
+                    Adicionar pergunta
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentIdx === 0}
+                    onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
+                    className="px-4 py-2.5 rounded-xl bg-white border-2 border-slate-200 text-slate-700 font-semibold hover:border-slate-300 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <FiArrowLeft className="w-4 h-4" />
+                    Anterior
+                  </button>
+                  {currentIdx < questions.length - 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentIdx((i) => Math.min(questions.length - 1, i + 1))}
+                      className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition flex items-center gap-2"
+                    >
+                      Próxima
+                      <FiArrowRight className="w-4 h-4" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:from-indigo-700 hover:to-purple-700 transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <FiCheckCircle className="w-4 h-4" />
+                      {saving ? "Salvando..." : "Salvar Quiz"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
