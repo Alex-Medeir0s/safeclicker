@@ -56,4 +56,6 @@ class QuizResponse(Base):
     answers = Column(JSON, nullable=False)
     correct_count = Column(Integer, nullable=False, default=0)
     total_questions = Column(Integer, nullable=False, default=0)
+    response_time_seconds = Column(Integer, nullable=True, default=0)
+    points_earned = Column(Integer, nullable=True, default=0)
     submitted_at = Column(DateTime, default=datetime.utcnow, nullable=False)

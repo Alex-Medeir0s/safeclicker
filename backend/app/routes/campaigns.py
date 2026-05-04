@@ -19,6 +19,7 @@ from app.models.user import User
 from app.models.quiz import Quiz, QuizResponse
 from app.schemas.campaign import CampaignCreate, CampaignRead, CampaignUpdate
 from app.schemas.quiz import (
+    XP_FOR_DIFFICULTY,
     QuizPublic,
     QuizQuestionPublic,
     QuizSubmitRequest,
@@ -456,7 +457,7 @@ def get_quiz_by_token(token: str, db: Session = Depends(get_db)):
     if not quiz:
         raise HTTPException(status_code=404, detail="Esta campanha não tem quiz vinculado")
 
-    total_xp = sum((q.xp or 0) for q in quiz.questions)
+    total_xp = sum(XP_FOR_DIFFICULTY.get(q.difficulty or "Fácil", 0) for q in quiz.questions)
     return QuizPublic(
         id=quiz.id,
         title=quiz.title,
@@ -475,6 +476,38 @@ def get_quiz_by_token(token: str, db: Session = Depends(get_db)):
             for q in quiz.questions
         ],
     )
+
+
+def _calculate_points_per_question(
+    difficulty: str, 
+    response_time_seconds: int, 
+    is_correct: bool
+) -> int:
+    """Calcula pontos de uma pergunta com base em dificuldade e tempo.
+    
+    Base de pontos por dificuldade:
+    - Fácil: 10 pontos
+    - Médio: 20 pontos
+    - Difícil: 30 pontos
+    
+    Penalidade: -1 ponto por segundo (mínimo de 5 pontos)
+    Só ganha pontos se acertar a pergunta.
+    """
+    if not is_correct:
+        return 0
+    
+    # Base de pontos por dificuldade
+    base_points = {
+        "Fácil": 10,
+        "Médio": 20,
+        "Difícil": 30,
+    }.get(difficulty, 10)
+    
+    # Aplicar penalidade de 1 ponto por segundo (após 2 segundos de graça)
+    points = base_points - max(0, response_time_seconds - 2)
+    
+    # Mínimo de 5 pontos
+    return max(points, 5)
 
 
 @router.post("/quiz/submit", response_model=QuizSubmitResponse)
@@ -511,6 +544,17 @@ def submit_quiz(
         if answer is not None and answer == question.correct_index
     )
 
+    # Calcular pontos ganhos por pergunta
+    response_times = payload.response_times or [0] * len(quiz.questions)
+    points_earned = sum(
+        _calculate_points_per_question(
+            quiz.questions[idx].difficulty or "Fácil",
+            response_times[idx] if idx < len(response_times) else 0,
+            payload.answers[idx] is not None and payload.answers[idx] == quiz.questions[idx].correct_index,
+        )
+        for idx in range(len(quiz.questions))
+    )
+
     existing_completion = (
         db.query(TrainingCompletion)
         .filter(TrainingCompletion.campaign_send_id == send_row.id)
@@ -522,6 +566,7 @@ def submit_quiz(
             recorded=False,
             correct_count=correct_count,
             total_questions=len(quiz.questions),
+            points_earned=points_earned,
             completed_at=existing_completion.completed_at,
         )
 
@@ -537,6 +582,8 @@ def submit_quiz(
         answers=payload.answers,
         correct_count=correct_count,
         total_questions=len(quiz.questions),
+        response_time_seconds=sum(response_times),
+        points_earned=points_earned,
         submitted_at=datetime.utcnow(),
     )
 
@@ -557,6 +604,7 @@ def submit_quiz(
                 recorded=False,
                 correct_count=correct_count,
                 total_questions=len(quiz.questions),
+                points_earned=0,
                 completed_at=existing_completion.completed_at,
             )
         raise HTTPException(status_code=500, detail="Erro ao registrar conclusão")
@@ -565,6 +613,7 @@ def submit_quiz(
         recorded=True,
         correct_count=correct_count,
         total_questions=len(quiz.questions),
+        points_earned=points_earned,
         completed_at=completion.completed_at,
     )
 

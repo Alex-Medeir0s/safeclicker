@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   FiPlus,
-  FiClock,
   FiHelpCircle,
   FiX,
   FiStar,
@@ -53,9 +52,9 @@ const MIN_ALTERNATIVES = 3;
 const DIFFICULTIES: Difficulty[] = ["Fácil", "Médio", "Difícil"];
 
 const xpForDifficulty: Record<Difficulty, number> = {
-  Fácil: 100,
-  Médio: 180,
-  Difícil: 260,
+  Fácil: 10,
+  Médio: 20,
+  Difícil: 30,
 };
 
 const difficultyStyle: Record<Difficulty, string> = {
@@ -110,8 +109,8 @@ export default function PhishingTrainingPage() {
   const [saving, setSaving] = useState(false);
 
   const completedCount = questions.filter(isQuestionComplete).length;
-  const totalXp = questions.reduce(
-    (acc, q) => acc + (isQuestionComplete(q) ? xpForDifficulty[q.difficulty] : 0),
+  const totalPossiblePoints = questions.reduce(
+    (acc, q) => acc + xpForDifficulty[q.difficulty],
     0
   );
 
@@ -359,13 +358,9 @@ export default function PhishingTrainingPage() {
                     <FiHelpCircle className="w-3.5 h-3.5" />
                     {quiz.question_count} perguntas
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <FiClock className="w-3.5 h-3.5" />
-                    {Math.max(5, quiz.question_count)} min
-                  </span>
                   <span className="ml-auto inline-flex items-center gap-1 text-amber-600 font-bold">
                     <FiStar className="w-3.5 h-3.5" />
-                    {quiz.total_xp} XP
+                    {quiz.total_xp} Pontos
                   </span>
                 </div>
               </div>
@@ -489,7 +484,7 @@ export default function PhishingTrainingPage() {
                       Pergunta {currentIdx + 1} de {questions.length}
                     </span>
                     <span className="text-slate-500">
-                      {completedCount}/{questions.length} completas · {totalXp} XP
+                      {completedCount}/{questions.length} completas · {totalPossiblePoints} Pontos totais
                     </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
@@ -565,7 +560,7 @@ export default function PhishingTrainingPage() {
                             >
                               <span>{d}</span>
                               <span className="text-[11px] font-medium opacity-80">
-                                {xpForDifficulty[d]} XP
+                                {xpForDifficulty[d]} Pontos
                               </span>
                             </button>
                           ))}

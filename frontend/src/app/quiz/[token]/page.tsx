@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiArrowRight, FiCheckCircle, FiAlertCircle, FiHelpCircle, FiClock, FiStar } from "react-icons/fi";
+import { FiArrowLeft, FiArrowRight, FiCheckCircle, FiAlertCircle, FiHelpCircle, FiStar } from "react-icons/fi";
 import { api } from "@/services/api";
 
 type Difficulty = "Fácil" | "Médio" | "Difícil";
@@ -23,6 +23,12 @@ interface QuizPublic {
   category: string | null;
   total_xp: number;
   questions: QuizQuestion[];
+}
+
+interface QuizResult {
+  correct: number;
+  total: number;
+  points: number;
 }
 
 const ALTERNATIVE_LABELS = ["A", "B", "C", "D", "E"];
@@ -48,7 +54,9 @@ export default function QuizTakePage({
   const [currentIdx, setCurrentIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState<{ correct: number; total: number } | null>(null);
+  const [result, setResult] = useState<QuizResult | null>(null);
+  const [quizStartTime] = useState<number>(Date.now());
+  const [answerTimestamps, setAnswerTimestamps] = useState<(number | null)[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +66,7 @@ export default function QuizTakePage({
         if (cancelled) return;
         setQuiz(response.data);
         setAnswers(new Array(response.data.questions.length).fill(null));
+        setAnswerTimestamps(new Array(response.data.questions.length).fill(null));
       } catch (error: unknown) {
         const err = error as { response?: { data?: { detail?: string }; status?: number } };
         const detail = err.response?.data?.detail;
@@ -74,6 +83,10 @@ export default function QuizTakePage({
 
   const setAnswer = (questionIdx: number, value: number) => {
     setAnswers((prev) => prev.map((a, i) => (i === questionIdx ? value : a)));
+    // Registra o timestamp quando a pergunta é respondida
+    setAnswerTimestamps((prev) => 
+      prev.map((t, i) => (i === questionIdx && t === null ? Date.now() : t))
+    );
   };
 
   const allAnswered = answers.length > 0 && answers.every((a) => a !== null);
@@ -83,13 +96,28 @@ export default function QuizTakePage({
     if (!quiz || !allAnswered || submitting) return;
     setSubmitting(true);
     try {
+      // Calcula o tempo que cada pergunta levou
+      const responseTimes = answerTimestamps.map((timestamp, idx) => {
+        if (timestamp === null) return 0;
+        
+        // Tempo da pergunta = diferença entre a resposta desta e da anterior
+        if (idx === 0) {
+          return Math.floor((timestamp - quizStartTime) / 1000);
+        } else if (answerTimestamps[idx - 1] !== null) {
+          return Math.floor((timestamp - answerTimestamps[idx - 1]!) / 1000);
+        }
+        return 0;
+      });
+      
       const response = await api.post("/campaigns/quiz/submit", {
         token,
         answers,
+        response_times: responseTimes,
       });
       setResult({
         correct: response.data.correct_count,
         total: response.data.total_questions,
+        points: response.data.points_earned,
       });
       setSubmitted(true);
     } catch (error: unknown) {
@@ -103,7 +131,7 @@ export default function QuizTakePage({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
         <p className="text-slate-600 text-lg">Carregando quiz…</p>
       </div>
     );
@@ -111,7 +139,7 @@ export default function QuizTakePage({
 
   if (loadError || !quiz) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 px-6">
         <div className="bg-white border border-slate-200 rounded-2xl shadow-lg p-8 max-w-md text-center space-y-4">
           <FiAlertCircle className="w-12 h-12 text-rose-500 mx-auto" />
           <h1 className="text-xl font-bold text-slate-900">Não foi possível carregar o quiz</h1>
@@ -129,7 +157,7 @@ export default function QuizTakePage({
 
   if (submitted && result) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-6">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 px-6">
         <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-10 max-w-lg w-full text-center space-y-5">
           <div className="w-20 h-20 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
             <FiCheckCircle className="w-12 h-12 text-emerald-600" />
@@ -138,6 +166,13 @@ export default function QuizTakePage({
           <p className="text-slate-600">
             Você acertou <strong>{result.correct}</strong> de <strong>{result.total}</strong> perguntas.
           </p>
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 space-y-2">
+            <p className="text-sm text-amber-700 font-semibold">Pontos Ganhos</p>
+            <p className="text-3xl font-bold text-amber-600 flex items-center justify-center gap-2">
+              <FiStar className="w-8 h-8" />
+              {result.points}
+            </p>
+          </div>
           <p className="text-sm text-slate-500">
             Sua participação foi registrada. Obrigado por contribuir com a segurança da informação.
           </p>
@@ -156,7 +191,7 @@ export default function QuizTakePage({
   const isLast = currentIdx === quiz.questions.length - 1;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         <header className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-3">
           <div>
@@ -171,13 +206,9 @@ export default function QuizTakePage({
               <FiHelpCircle className="w-3.5 h-3.5" />
               {quiz.questions.length} perguntas
             </span>
-            <span className="flex items-center gap-1.5">
-              <FiClock className="w-3.5 h-3.5" />
-              {Math.max(5, quiz.questions.length)} min
-            </span>
             <span className="ml-auto inline-flex items-center gap-1 text-amber-600 font-bold">
               <FiStar className="w-3.5 h-3.5" />
-              {quiz.total_xp} XP
+              {quiz.total_xp} Pontos
             </span>
           </div>
         </header>

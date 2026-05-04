@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 
 
-XP_FOR_DIFFICULTY = {"Fácil": 100, "Médio": 180, "Difícil": 260}
+XP_FOR_DIFFICULTY = {"Fácil": 10, "Médio": 20, "Difícil": 30}
 
 
 class QuizQuestionBase(BaseModel):
@@ -130,10 +130,12 @@ class QuizPublic(BaseModel):
 class QuizSubmitRequest(BaseModel):
     token: str
     answers: List[Optional[int]]
+    response_times: Optional[List[int]] = None  # Tempo em segundos por pergunta
 
 
 class QuizSubmitResponse(BaseModel):
     recorded: bool
     correct_count: int
     total_questions: int
+    points_earned: int
     completed_at: datetime

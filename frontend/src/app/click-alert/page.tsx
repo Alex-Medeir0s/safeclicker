@@ -66,7 +66,7 @@ export default function ClickAlert() {
 
   if (campaignStatus === 'disabled') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-slate-50 flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex items-center justify-center px-4 py-12">
         <div className="max-w-xl mx-auto w-full">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 sm:p-12 space-y-8">
             {/* Ícone e título */}
@@ -107,7 +107,7 @@ export default function ClickAlert() {
 
   if (campaignStatus === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-slate-50 flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex items-center justify-center px-4 py-12">
         <div className="max-w-xl mx-auto w-full">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-12">
             <div className="flex items-center justify-center">
@@ -120,7 +120,7 @@ export default function ClickAlert() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-slate-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex items-center justify-center px-4 py-12">
       <div className="max-w-xl mx-auto w-full">
         <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
           {/* Header gradient */}
