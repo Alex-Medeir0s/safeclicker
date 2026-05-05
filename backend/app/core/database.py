@@ -5,36 +5,21 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-# SQLite support
-if settings.database_url.startswith("sqlite"):
+try:
     engine = create_engine(
         settings.database_url,
         echo=True if settings.debug else False,
-        connect_args={"check_same_thread": False},
+        pool_pre_ping=True,
     )
-else:
-    # Tenta conectar ao PostgreSQL; se houver erro de encoding/conn, faz fallback para SQLite local (apenas dev)
-    try:
-        engine = create_engine(
-            settings.database_url,
-            echo=True if settings.debug else False,
-            pool_pre_ping=True,
-        )
-        # Testar conexão básica
-        conn = engine.connect()
-        print(f"✅ PostgreSQL connection successful: {settings.database_url}")
-        conn.close()
-    except Exception as e:
-        import traceback
-        print(f"❌ Error connecting to PostgreSQL: {e}")
-        print(f"Full traceback: {traceback.format_exc()}")
-        fallback_url = "sqlite:///./test.db"
-        print(f"⚠️ Falling back to SQLite DB at {fallback_url} for local development")
-        engine = create_engine(
-            fallback_url,
-            echo=True if settings.debug else False,
-            connect_args={"check_same_thread": False},
-        )
+    conn = engine.connect()
+    print(f"✅ PostgreSQL connection successful: {settings.database_url}")
+    conn.close()
+except Exception as e:
+    import traceback
+
+    print(f"❌ Error connecting to PostgreSQL: {e}")
+    print(f"Full traceback: {traceback.format_exc()}")
+    raise RuntimeError("Unable to connect to PostgreSQL using DATABASE_URL") from e
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
