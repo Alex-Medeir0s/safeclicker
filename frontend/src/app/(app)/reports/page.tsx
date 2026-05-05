@@ -288,8 +288,8 @@ export default function Reports() {
       doc.setFontSize(11);
       doc.setTextColor(71, 85, 105);
       const totalRegisteredCampaigns = data.summary.total_campaigns ?? 0;
-      const activeCampaignsSummary = data.summary.active_campaigns ?? deptCampaigns;
-      const summaryText = `Há ${totalRegisteredCampaigns} campanha(s) cadastrada(s), e ${activeCampaignsSummary} campanha(s) executada(s), com ${totalEmails} email(s) enviado(s). A taxa de segurança observada foi de ${(100 - deptClickRate).toFixed(1)}%, indicando que ${deptClickRate.toFixed(1)}% dos usuários clicaram.`;
+      const executedCampaignsSummary = data.summary.executed_campaigns ?? data.summary.active_campaigns ?? deptCampaigns;
+      const summaryText = `Há ${totalRegisteredCampaigns} campanha(s) cadastrada(s), e ${executedCampaignsSummary} campanha(s) executada(s), com ${totalEmails} email(s) enviado(s). A taxa de segurança observada foi de ${(100 - deptClickRate).toFixed(1)}%, indicando que ${deptClickRate.toFixed(1)}% dos usuários clicaram.`;
       const summaryLines = doc.splitTextToSize(summaryText, pageWidth - 80);
       doc.text(summaryLines, 40, currentY + 12);
       currentY = currentY + 12 + summaryLines.length * 14 + 8;
@@ -301,7 +301,7 @@ export default function Reports() {
 
         autoTable(doc, {
           startY: currentY + 36,
-          head: [["Campanha", "Status", "Emails Enviados", "Cliques", "Início"]],
+          head: [["Campanha", "Status", "Emails Enviados", "Cliques", "Envio"]],
           body: data.recent_campaigns.map((campaign: any) => [
             campaign.name,
             formatStatusForPdf(campaign.status),
@@ -573,7 +573,7 @@ export default function Reports() {
                   <th className="px-4 py-2 text-center text-sm font-semibold">Status</th>
                   <th className="px-4 py-2 text-center text-sm font-semibold">Emails Enviados</th>
                   <th className="px-4 py-2 text-center text-sm font-semibold">Cliques</th>
-                  <th className="px-4 py-2 text-center text-sm font-semibold">Início</th>
+                  <th className="px-4 py-2 text-center text-sm font-semibold">Envio</th>
                 </tr>
               </thead>
               <tbody className="divide-y">

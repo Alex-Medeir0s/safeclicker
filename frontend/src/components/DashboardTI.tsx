@@ -582,7 +582,9 @@ export function DashboardTI({ metrics, onCampaignClick }: DashboardTIProps) {
                     </span>
                   </div>
                   <p className="text-sm text-slate-600">
-                    {new Date(campaign.start_date || "").toLocaleDateString("pt-BR")}
+                    {campaign.start_date
+                      ? `Envio: ${new Date(campaign.start_date).toLocaleDateString("pt-BR")}`
+                      : "Envio: -"}
                   </p>
                 </div>
                 <div className="flex gap-4 text-sm">

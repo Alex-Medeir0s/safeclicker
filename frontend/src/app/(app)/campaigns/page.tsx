@@ -559,6 +559,7 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments, onCam
 
   const disabledHoverClass = "disabled:hover:bg-slate-100 disabled:hover:text-slate-700 disabled:hover:border-slate-300";
   const isSentCampaign = campaign.status === "active" || campaign.status === "sent";
+  const canDeactivate = campaign.status === "active";
 
   // Função para obter nomes dos departamentos selecionados
   const getDepartmentNames = () => {
@@ -616,6 +617,11 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments, onCam
   };
 
   const handleDeactivate = async () => {
+    if (!canDeactivate) {
+      alert("A campanha só pode ser desativada quando estiver com status ativa.");
+      return;
+    }
+
     if (!confirm("Tem certeza que deseja desativar esta campanha?\n\nIsso mudará o status para desativado e impedirá novos registros de cliques e treinamentos.")) {
       return;
     }
@@ -784,7 +790,8 @@ function CampaignCard({ campaign, onViewHtml, onEditCampaign, departments, onCam
         <div className="grid grid-cols-2 gap-2">
           <button 
             onClick={handleDeactivate}
-            disabled={deactivating || campaign.status === "disabled"}
+            disabled={deactivating || !canDeactivate}
+            title={canDeactivate ? "Desativar campanha" : "A campanha só pode ser desativada quando estiver ativa"}
             className={`${actionButtonBaseClass} hover:bg-blue-600 hover:border-blue-600 hover:text-white ${disabledHoverClass}`}
           >
             {deactivating ? <><FiLoader className="w-4 h-4 animate-spin" /> Desativando...</> : <><FiX className="w-4 h-4" /> Desativar</>}

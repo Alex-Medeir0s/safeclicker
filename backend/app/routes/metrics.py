@@ -84,6 +84,7 @@ class CollaboratorPhishingSend(BaseModel):
 class MetricsSummary(BaseModel):
     total_campaigns: int
     active_campaigns: int
+    executed_campaigns: int = 0
     total_users: int
     emails_received: int
     emails_clicked: int
@@ -119,6 +120,7 @@ async def get_dashboard_metrics(
     # Contar campanhas
     total_campaigns = campaigns_query.count()
     active_campaigns = campaigns_query.filter(Campaign.status == "active").count()
+    executed_campaigns = campaigns_query.filter(Campaign.status.in_(["active", "disabled"])).count()
     
     # Contar usuários
     total_users = users_query.count()
@@ -382,13 +384,24 @@ async def get_dashboard_metrics(
             Campaign.id,
             Campaign.name,
             Campaign.status,
-            func.coalesce(Campaign.start_date, Campaign.created_at).label("start_date"),
+            func.coalesce(
+                func.max(CampaignSend.sent_at),
+                Campaign.start_date,
+                Campaign.created_at,
+            ).label("start_date"),
             Campaign.updated_at.label("updated_at"),
         )
         .outerjoin(CampaignSend, Campaign.id == CampaignSend.campaign_id)
         .outerjoin(ClickEvent, CampaignSend.id == ClickEvent.campaign_send_id)
         .group_by(Campaign.id)
-        .order_by(Campaign.updated_at.desc(), func.coalesce(Campaign.start_date, Campaign.created_at).desc())
+        .order_by(
+            Campaign.updated_at.desc(),
+            func.coalesce(
+                func.max(CampaignSend.sent_at),
+                Campaign.start_date,
+                Campaign.created_at,
+            ).desc(),
+        )
         .limit(5)
         .all()
     )
@@ -455,6 +468,7 @@ async def get_dashboard_metrics(
         summary=MetricsSummary(
             total_campaigns=total_campaigns,
             active_campaigns=active_campaigns,
+            executed_campaigns=executed_campaigns,
             total_users=total_users,
             emails_received=total_sends,
             emails_clicked=total_clicks,

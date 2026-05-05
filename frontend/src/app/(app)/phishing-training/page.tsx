@@ -13,6 +13,7 @@ import {
   FiTrash2,
   FiEdit2,
   FiTrendingUp,
+  FiEye,
 } from "react-icons/fi";
 import { api } from "@/services/api";
 
@@ -70,6 +71,7 @@ type DepartmentUser = {
 
 const ALTERNATIVE_LABELS = ["A", "B", "C", "D", "E"];
 const MIN_ALTERNATIVES = 2;
+const DEFAULT_ALTERNATIVES = 4;
 const DIFFICULTIES: Difficulty[] = ["Fácil", "Médio", "Difícil"];
 
 const xpForDifficulty: Record<Difficulty, number> = {
@@ -86,7 +88,7 @@ const difficultyStyle: Record<Difficulty, string> = {
 
 const normalizeAlternatives = (alternatives: string[]): string[] => {
   const normalized = [...alternatives];
-  while (normalized.length < MIN_ALTERNATIVES) {
+  while (normalized.length < DEFAULT_ALTERNATIVES) {
     normalized.push("");
   }
   return normalized;
@@ -94,7 +96,7 @@ const normalizeAlternatives = (alternatives: string[]): string[] => {
 
 const makeEmptyQuestion = (): Question => ({
   text: "",
-  alternatives: ["", ""],
+  alternatives: Array.from({ length: DEFAULT_ALTERNATIVES }, () => ""),
   correctIndex: null,
   difficulty: "Fácil",
 });
@@ -112,6 +114,8 @@ export default function PhishingTrainingPage() {
   // Para TI
   const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewQuiz, setPreviewQuiz] = useState<QuizDetail | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState({ title: "", category: "", description: "" });
@@ -373,6 +377,17 @@ export default function PhishingTrainingPage() {
     }
   };
 
+  const handlePreview = async (id: number) => {
+    try {
+      const response = await api.get<QuizDetail>(`/quizzes/${id}`);
+      setPreviewQuiz(response.data);
+      setShowPreview(true);
+    } catch (error) {
+      console.error(error);
+      showFeedback("error", "Erro ao carregar visualização do quiz");
+    }
+  };
+
   const completedCount = questions.filter(isQuestionComplete).length;
   const currentQuestion = questions[currentIdx];
   const rankingData = rankingScope === "global" ? globalRanking : departmentRanking;
@@ -380,6 +395,15 @@ export default function PhishingTrainingPage() {
     (acc, question) => acc + xpForDifficulty[question.difficulty],
     0
   );
+
+  const handleNextQuestion = () => {
+    if (currentQuestion && currentQuestion.correctIndex === null) {
+      showFeedback("error", "Marque a alternativa correta antes de avançar para a próxima pergunta");
+      return;
+    }
+
+    setCurrentIdx((i) => Math.min(questions.length - 1, i + 1));
+  };
 
   if (loading) {
     return (
@@ -403,7 +427,7 @@ export default function PhishingTrainingPage() {
 
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent leading-[1.15] pb-1 mb-2">
               Ranking de Colaboradores
             </h1>
             <p className="text-slate-600">
@@ -463,7 +487,9 @@ export default function PhishingTrainingPage() {
               let medalSize = "w-12 h-12";
               let cardPadding = "p-4";
               let nameSize = "text-base";
+              let nameWeight = "font-semibold";
               let pointsSize = "text-2xl";
+              let pointsWeight = "font-bold";
               
               if (idx === 0) {
                 // Ouro - 1º lugar
@@ -473,28 +499,34 @@ export default function PhishingTrainingPage() {
                 medal = "🥇";
                 medalSize = "w-20 h-20";
                 cardPadding = "p-8";
-                nameSize = "text-lg";
-                pointsSize = "text-4xl";
+                nameSize = "text-2xl";
+                nameWeight = "font-medium";
+                pointsSize = "text-5xl";
+                pointsWeight = "font-medium";
               } else if (idx === 1) {
                 // Prata - 2º lugar
                 medalColor = "bg-gradient-to-br from-slate-400 to-slate-500";
                 medalBgColor = "bg-slate-100";
                 cardBorder = "border-slate-400";
                 medal = "🥈";
-                medalSize = "w-[72px] h-[72px]";
-                cardPadding = "p-7";
-                nameSize = "text-base";
-                pointsSize = "text-3xl";
+                medalSize = "w-20 h-20";
+                cardPadding = "p-8";
+                nameSize = "text-2xl";
+                nameWeight = "font-medium";
+                pointsSize = "text-5xl";
+                pointsWeight = "font-medium";
               } else if (idx === 2) {
                 // Bronze - 3º lugar
                 medalColor = "bg-gradient-to-br from-orange-300 to-orange-400";
                 medalBgColor = "bg-orange-50";
                 cardBorder = "border-orange-200";
                 medal = "🥉";
-                medalSize = "w-16 h-16";
-                cardPadding = "p-6";
-                nameSize = "text-sm";
-                pointsSize = "text-2xl";
+                medalSize = "w-20 h-20";
+                cardPadding = "p-8";
+                nameSize = "text-2xl";
+                nameWeight = "font-medium";
+                pointsSize = "text-5xl";
+                pointsWeight = "font-medium";
               }
               
               return (
@@ -507,7 +539,7 @@ export default function PhishingTrainingPage() {
                       {idx < 3 ? medal : idx + 1}
                     </div>
                     <div>
-                      <h3 className={`font-semibold text-slate-900 ${nameSize}`}>{user.full_name}</h3>
+                      <h3 className={`${nameWeight} text-slate-900 ${nameSize}`}>{user.full_name}</h3>
                       <p className="text-sm text-slate-600">{user.email}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {user.department_name || "Sem departamento"}
@@ -517,7 +549,7 @@ export default function PhishingTrainingPage() {
                   <div className="text-right">
                     <div className="flex items-center gap-2">
                       <FiStar className="w-5 h-5 text-amber-500" />
-                      <span className={`font-bold text-amber-600 ${pointsSize}`}>{user.total_points}</span>
+                      <span className={`${pointsWeight} text-amber-600 ${pointsSize}`}>{user.total_points}</span>
                     </div>
                     <p className="text-xs text-slate-600 mt-1">Pontos Totais</p>
                   </div>
@@ -651,13 +683,20 @@ export default function PhishingTrainingPage() {
               style={{ animationDelay: `${idx * 0.05}s` }}
               className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 animate-fade-in"
             >
-              <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-indigo-400/15 to-purple-400/10 group-hover:scale-110 transition-transform duration-500" />
+              <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br from-indigo-300/7 to-purple-300/5 group-hover:scale-110 transition-transform duration-500" />
               <div className="relative p-6 space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
                     {quiz.category || "Geral"}
                   </p>
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handlePreview(quiz.id)}
+                      title="Visualizar"
+                      className="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-sky-600 hover:text-white hover:border-sky-600 transition flex items-center justify-center"
+                    >
+                      <FiEye className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       onClick={() => handleEdit(quiz.id)}
                       title="Editar"
@@ -985,8 +1024,14 @@ export default function PhishingTrainingPage() {
                   {currentIdx < questions.length - 1 ? (
                     <button
                       type="button"
-                      onClick={() => setCurrentIdx((i) => Math.min(questions.length - 1, i + 1))}
-                      className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition flex items-center gap-2"
+                      onClick={handleNextQuestion}
+                      disabled={currentQuestion?.correctIndex === null}
+                      title={
+                        currentQuestion?.correctIndex === null
+                          ? "Marque a alternativa correta para avançar"
+                          : "Ir para a próxima pergunta"
+                      }
+                      className="px-4 py-2.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Próxima
                       <FiArrowRight className="w-4 h-4" />
@@ -1005,6 +1050,98 @@ export default function PhishingTrainingPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showPreview && previewQuiz && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => {
+            setShowPreview(false);
+            setPreviewQuiz(null);
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-[960px] overflow-hidden flex flex-col max-h-[92vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-sky-600 font-semibold">Visualização</p>
+                <h3 className="text-xl font-bold text-slate-900 mt-0.5">{previewQuiz.title}</h3>
+                <p className="text-sm text-slate-500 mt-1">{previewQuiz.category || "Geral"}</p>
+                {previewQuiz.description && (
+                  <p className="text-sm text-slate-600 mt-2">{previewQuiz.description}</p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setShowPreview(false);
+                  setPreviewQuiz(null);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {previewQuiz.questions.length === 0 ? (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-slate-500">
+                  Este quiz ainda não possui perguntas.
+                </div>
+              ) : (
+                previewQuiz.questions
+                  .sort((a, b) => a.position - b.position)
+                  .map((question, questionIdx) => (
+                    <div key={question.id} className="border border-slate-200 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                          Pergunta {questionIdx + 1}
+                        </span>
+                        {question.difficulty && (
+                          <span className={`text-xs font-semibold border px-2 py-0.5 rounded-full ${difficultyStyle[question.difficulty]}`}>
+                            {question.difficulty}
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-semibold text-slate-900">{question.text}</p>
+                      <div className="space-y-2">
+                        {question.alternatives.map((alternative, altIdx) => {
+                          const isCorrect = altIdx === question.correct_index;
+                          return (
+                            <div
+                              key={altIdx}
+                              className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                                isCorrect
+                                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                                  : "border-slate-200 bg-white text-slate-700"
+                              }`}
+                            >
+                              <span className="text-xs font-bold w-6 text-center">{ALTERNATIVE_LABELS[altIdx] || `${altIdx + 1}`}</span>
+                              <span className="text-sm flex-1">{alternative}</span>
+                              {isCorrect && <FiCheckCircle className="w-4 h-4 text-emerald-600" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            <div className="flex justify-end p-4 border-t border-slate-100 bg-slate-50/50">
+              <button
+                onClick={() => {
+                  setShowPreview(false);
+                  setPreviewQuiz(null);
+                }}
+                className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 transition font-semibold"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}
