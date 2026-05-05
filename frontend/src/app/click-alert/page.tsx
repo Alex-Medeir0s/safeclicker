@@ -10,7 +10,17 @@ export default function ClickAlert() {
   const token = searchParams.get('token');
   const [countdown, setCountdown] = useState(30);
   const [redirect, setRedirect] = useState(false);
-  const [campaignStatus, setCampaignStatus] = useState<'loading' | 'active' | 'disabled'>('loading');
+  const [campaignStatus, setCampaignStatus] = useState<'loading' | 'active' | 'disabled' | 'completed'>('loading');
+  const [campaignLabel, setCampaignLabel] = useState<string | null>(null);
+  const [quizStats, setQuizStats] = useState<{
+    correctCount: number | null;
+    totalQuestions: number | null;
+    pointsEarned: number | null;
+  }>({
+    correctCount: null,
+    totalQuestions: null,
+    pointsEarned: null,
+  });
   const eventId = token || 'Token não disponível';
   const eventTimestamp = new Date().toLocaleString('pt-BR', {
     year: 'numeric',
@@ -26,12 +36,30 @@ export default function ClickAlert() {
 
     const validateCampaign = async () => {
       try {
-        const response = await api.get(`/campaigns/validate/${token}`);
-        if (response.data?.status === 'active') {
-          setCampaignStatus('active');
-        } else {
+        const [statusResponse, campaignResponse] = await Promise.all([
+          api.get(`/campaigns/validate/${token}`),
+          api.get(`/campaigns/by-token/${token}`),
+        ]);
+
+        const campaignName = campaignResponse.data?.quiz_title || campaignResponse.data?.campaign_name || null;
+        setCampaignLabel(campaignName);
+        setQuizStats({
+          correctCount: campaignResponse.data?.correct_count ?? null,
+          totalQuestions: campaignResponse.data?.total_questions ?? null,
+          pointsEarned: campaignResponse.data?.points_earned ?? null,
+        });
+
+        if (statusResponse.data?.status !== 'active') {
           setCampaignStatus('disabled');
+          return;
         }
+
+        if (campaignResponse.data?.already_completed) {
+          setCampaignStatus('completed');
+          return;
+        }
+
+        setCampaignStatus('active');
       } catch (error) {
         console.error('Erro ao validar campanha:', error);
         setCampaignStatus('disabled');
@@ -91,6 +119,56 @@ export default function ClickAlert() {
             </div>
 
             {/* Footer info */}
+            <div className="border-t border-slate-200 pt-6 text-center space-y-2">
+              <p className="text-xs text-slate-500">
+                <span className="font-medium">Identificador:</span> {eventId}
+              </p>
+              <p className="text-xs text-slate-500">
+                <span className="font-medium">Data/Hora:</span> {eventTimestamp} (UTC-3)
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (campaignStatus === 'completed') {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex items-center justify-center px-4 py-12">
+        <div className="max-w-xl mx-auto w-full">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 sm:p-12 space-y-8">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <FiCheckCircle className="w-10 h-10 text-emerald-600" />
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-slate-900">Treinamento já concluído</h1>
+              <p className="text-lg text-slate-600">Você já realizou esse treinamento anteriormente</p>
+            </div>
+
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-6 space-y-3">
+              <p className="text-slate-700 font-medium">
+                {campaignLabel
+                  ? `O treinamento ${campaignLabel} já foi concluído para este link.`
+                  : 'Este treinamento já foi concluído para este link.'}
+              </p>
+              {quizStats.correctCount !== null && quizStats.totalQuestions !== null && (
+                <p className="text-slate-700 text-sm">
+                  Você acertou <span className="font-semibold">{quizStats.correctCount}</span> de <span className="font-semibold">{quizStats.totalQuestions}</span> questões.
+                </p>
+              )}
+              {quizStats.pointsEarned !== null && (
+                <p className="text-slate-700 text-sm">
+                  Pontuação obtida: <span className="font-semibold">{quizStats.pointsEarned} pontos</span>.
+                </p>
+              )}
+              <p className="text-slate-600 text-sm">
+                Não é possível repetir a mesma tentativa. Se você acredita que isso está incorreto, entre em contato com o time de Segurança da Informação.
+              </p>
+            </div>
+
             <div className="border-t border-slate-200 pt-6 text-center space-y-2">
               <p className="text-xs text-slate-500">
                 <span className="font-medium">Identificador:</span> {eventId}

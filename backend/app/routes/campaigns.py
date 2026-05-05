@@ -98,6 +98,9 @@ class CampaignByTokenResponse(BaseModel):
     quiz_id: Optional[int] = None
     quiz_title: Optional[str] = None
     already_completed: bool = False
+    correct_count: Optional[int] = None
+    total_questions: Optional[int] = None
+    points_earned: Optional[int] = None
 
 
 @router.get("", response_model=List[CampaignRead])
@@ -434,6 +437,13 @@ def get_campaign_by_token(token: str, db: Session = Depends(get_db)):
         is not None
     )
 
+    latest_response = (
+        db.query(QuizResponse)
+        .filter(QuizResponse.campaign_send_id == send_row.id)
+        .order_by(QuizResponse.submitted_at.desc())
+        .first()
+    )
+
     return CampaignByTokenResponse(
         campaign_id=campaign.id,
         campaign_name=campaign.name,
@@ -441,6 +451,9 @@ def get_campaign_by_token(token: str, db: Session = Depends(get_db)):
         quiz_id=quiz.id if quiz else None,
         quiz_title=quiz.title if quiz else None,
         already_completed=already_completed,
+        correct_count=latest_response.correct_count if latest_response else None,
+        total_questions=latest_response.total_questions if latest_response else None,
+        points_earned=latest_response.points_earned if latest_response else None,
     )
 
 
