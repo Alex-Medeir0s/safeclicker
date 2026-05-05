@@ -713,6 +713,7 @@ def get_department_ranking(
                 "user_id": user.id,
                 "full_name": user.full_name,
                 "email": user.email,
+                "department_name": user.department.name if user.department else "Sem departamento",
                 "total_points": int(total_points),
             })
         
@@ -721,4 +722,36 @@ def get_department_ranking(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao obter ranking: {str(e)}")
+
+
+@router.get("/quiz/global-ranking", response_model=List[dict])
+def get_global_ranking(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Obtém o ranking global de todos os usuários cadastrados com soma de pontos."""
+    try:
+        all_users = db.query(User).all()
+
+        result = []
+        for user in all_users:
+            total_points = (
+                db.query(func.coalesce(func.sum(QuizResponse.points_earned), 0))
+                .join(CampaignSend, QuizResponse.campaign_send_id == CampaignSend.id)
+                .filter(CampaignSend.user_id == user.id)
+                .scalar() or 0
+            )
+
+            result.append({
+                "user_id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "department_name": user.department.name if user.department else "Sem departamento",
+                "total_points": int(total_points),
+            })
+
+        result.sort(key=lambda x: x["total_points"], reverse=True)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao obter ranking global: {str(e)}")
 

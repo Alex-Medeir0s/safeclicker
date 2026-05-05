@@ -18,6 +18,7 @@ import { api } from "@/services/api";
 
 type Difficulty = "Fácil" | "Médio" | "Difícil";
 type UserRole = "TI" | "GESTOR" | "COLABORADOR";
+type RankingScope = "global" | "department";
 
 type Question = {
   text: string;
@@ -63,6 +64,7 @@ type DepartmentUser = {
   user_id: number;
   full_name: string;
   email: string;
+  department_name: string | null;
   total_points: number;
 };
 
@@ -118,6 +120,8 @@ export default function PhishingTrainingPage() {
   const [saving, setSaving] = useState(false);
 
   // Para Gestor
+  const [rankingScope, setRankingScope] = useState<RankingScope>("global");
+  const [globalRanking, setGlobalRanking] = useState<DepartmentUser[]>([]);
   const [departmentRanking, setDepartmentRanking] = useState<DepartmentUser[]>([]);
 
   // Para Colaborador
@@ -139,7 +143,7 @@ export default function PhishingTrainingPage() {
       if (role === "TI") {
         fetchQuizzes();
       } else if (role === "GESTOR") {
-        fetchDepartmentRanking();
+        fetchGlobalRanking();
       } else if (role === "COLABORADOR") {
         fetchUserResponses();
       }
@@ -166,6 +170,19 @@ export default function PhishingTrainingPage() {
     } catch (error: any) {
       console.error("Erro ao carregar ranking:", error);
       const errorMsg = error.response?.data?.detail || error.message || "Erro ao carregar ranking do departamento";
+      showFeedback("error", errorMsg);
+    }
+  };
+
+  const fetchGlobalRanking = async () => {
+    try {
+      console.log("Fetching global ranking...");
+      const response = await api.get<DepartmentUser[]>("/campaigns/quiz/global-ranking");
+      console.log("Global ranking response:", response.data);
+      setGlobalRanking(response.data);
+    } catch (error: any) {
+      console.error("Erro ao carregar ranking global:", error);
+      const errorMsg = error.response?.data?.detail || error.message || "Erro ao carregar ranking global";
       showFeedback("error", errorMsg);
     }
   };
@@ -358,6 +375,7 @@ export default function PhishingTrainingPage() {
 
   const completedCount = questions.filter(isQuestionComplete).length;
   const currentQuestion = questions[currentIdx];
+  const rankingData = rankingScope === "global" ? globalRanking : departmentRanking;
   const totalPossiblePoints = questions.reduce(
     (acc, question) => acc + xpForDifficulty[question.difficulty],
     0
@@ -388,61 +406,118 @@ export default function PhishingTrainingPage() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
               Ranking de Colaboradores
             </h1>
-            <p className="text-slate-600">Pontuação total de todos os colaboradores do seu departamento</p>
+            <p className="text-slate-600">
+              {rankingScope === "global"
+                ? "Pontuação geral"
+                : "Pontuação total dos colaboradores do meu departamento"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setRankingScope("global");
+                if (globalRanking.length === 0) fetchGlobalRanking();
+              }}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+                rankingScope === "global"
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+              }`}
+            >
+              Ranking geral
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRankingScope("department");
+                if (departmentRanking.length === 0) fetchDepartmentRanking();
+              }}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+                rankingScope === "department"
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+              }`}
+            >
+              Meu departamento
+            </button>
           </div>
         </div>
 
         <div className="grid gap-4">
-          {departmentRanking.length === 0 ? (
+          {rankingData.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
-              <p className="text-slate-500">Nenhum colaborador com respostas de quiz</p>
+              <p className="text-slate-500">
+                {rankingScope === "global"
+                  ? "Nenhum usuário com respostas de quiz"
+                  : "Nenhum colaborador do departamento com respostas de quiz"}
+              </p>
             </div>
           ) : (
-            departmentRanking.map((user, idx) => {
+            rankingData.map((user, idx) => {
               // Definir cor baseada na posição
-              let medalColor = "bg-gradient-to-br from-indigo-500 to-purple-600";
-              let medalBgColor = "bg-white";
+              let medalColor = "bg-gradient-to-br from-slate-300 to-slate-400";
+              let medalBgColor = "bg-slate-50";
               let cardBorder = "border-slate-200";
               let medal = "";
+              let medalSize = "w-12 h-12";
+              let cardPadding = "p-4";
+              let nameSize = "text-base";
+              let pointsSize = "text-2xl";
               
               if (idx === 0) {
                 // Ouro - 1º lugar
                 medalColor = "bg-gradient-to-br from-yellow-400 to-yellow-600";
                 medalBgColor = "bg-yellow-50";
-                cardBorder = "border-yellow-300";
+                cardBorder = "border-yellow-400";
                 medal = "🥇";
+                medalSize = "w-20 h-20";
+                cardPadding = "p-8";
+                nameSize = "text-lg";
+                pointsSize = "text-4xl";
               } else if (idx === 1) {
                 // Prata - 2º lugar
-                medalColor = "bg-gradient-to-br from-gray-300 to-gray-400";
-                medalBgColor = "bg-gray-50";
-                cardBorder = "border-gray-300";
+                medalColor = "bg-gradient-to-br from-slate-400 to-slate-500";
+                medalBgColor = "bg-slate-100";
+                cardBorder = "border-slate-400";
                 medal = "🥈";
+                medalSize = "w-[72px] h-[72px]";
+                cardPadding = "p-7";
+                nameSize = "text-base";
+                pointsSize = "text-3xl";
               } else if (idx === 2) {
                 // Bronze - 3º lugar
-                medalColor = "bg-gradient-to-br from-orange-400 to-orange-600";
+                medalColor = "bg-gradient-to-br from-orange-300 to-orange-400";
                 medalBgColor = "bg-orange-50";
-                cardBorder = "border-orange-300";
+                cardBorder = "border-orange-200";
                 medal = "🥉";
+                medalSize = "w-16 h-16";
+                cardPadding = "p-6";
+                nameSize = "text-sm";
+                pointsSize = "text-2xl";
               }
               
               return (
                 <div
                   key={user.user_id}
-                  className={`${medalBgColor} border-2 ${cardBorder} rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 flex items-center justify-between group`}
+                  className={`${medalBgColor} border-2 ${cardBorder} rounded-2xl shadow-sm hover:shadow-lg transition-all ${cardPadding} flex items-center justify-between group`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`${medalColor} w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg`}>
+                    <div className={`${medalColor} ${medalSize} rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg`}>
                       {idx < 3 ? medal : idx + 1}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900">{user.full_name}</h3>
+                      <h3 className={`font-semibold text-slate-900 ${nameSize}`}>{user.full_name}</h3>
                       <p className="text-sm text-slate-600">{user.email}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {user.department_name || "Sem departamento"}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-2">
                       <FiStar className="w-5 h-5 text-amber-500" />
-                      <span className="text-3xl font-bold text-amber-600">{user.total_points}</span>
+                      <span className={`font-bold text-amber-600 ${pointsSize}`}>{user.total_points}</span>
                     </div>
                     <p className="text-xs text-slate-600 mt-1">Pontos Totais</p>
                   </div>
