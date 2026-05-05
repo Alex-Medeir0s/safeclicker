@@ -257,13 +257,6 @@ export default function QuizTakePage({
           <div className="p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-lg font-semibold text-slate-900 flex-1">{currentQuestion.text}</h2>
-              {currentQuestion.difficulty && (
-                <span
-                  className={`inline-flex items-center text-xs font-semibold border px-2.5 py-1 rounded-full flex-shrink-0 ${difficultyStyle[currentQuestion.difficulty]}`}
-                >
-                  {currentQuestion.difficulty}
-                </span>
-              )}
             </div>
             <div className="space-y-2">
               {currentQuestion.alternatives.map((alt, altIdx) => {

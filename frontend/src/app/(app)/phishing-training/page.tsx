@@ -67,7 +67,7 @@ type DepartmentUser = {
 };
 
 const ALTERNATIVE_LABELS = ["A", "B", "C", "D", "E"];
-const MIN_ALTERNATIVES = 3;
+const MIN_ALTERNATIVES = 2;
 const DIFFICULTIES: Difficulty[] = ["Fácil", "Médio", "Difícil"];
 
 const xpForDifficulty: Record<Difficulty, number> = {
@@ -92,7 +92,7 @@ const normalizeAlternatives = (alternatives: string[]): string[] => {
 
 const makeEmptyQuestion = (): Question => ({
   text: "",
-  alternatives: ["", "", ""],
+  alternatives: ["", ""],
   correctIndex: null,
   difficulty: "Fácil",
 });
@@ -213,6 +213,28 @@ export default function PhishingTrainingPage() {
   const addAlternative = (qIdx: number) => {
     setQuestions((prev) =>
       prev.map((q, i) => (i === qIdx ? { ...q, alternatives: [...q.alternatives, ""] } : q))
+    );
+  };
+
+  const removeAlternative = (qIdx: number, altIdx: number) => {
+    setQuestions((prev) =>
+      prev.map((q, i) => {
+        if (i === qIdx) {
+          // Não permitir remover se deixar menos de 2 alternativas
+          if (q.alternatives.length <= MIN_ALTERNATIVES) {
+            showFeedback("error", `O quiz precisa ter no mínimo ${MIN_ALTERNATIVES} alternativas por pergunta`);
+            return q;
+          }
+          // Se a alternativa removida era a correta, limpar a seleção
+          const newCorrectIndex = q.correctIndex === altIdx ? null : q.correctIndex;
+          return {
+            ...q,
+            alternatives: q.alternatives.filter((_, j) => j !== altIdx),
+            correctIndex: newCorrectIndex,
+          };
+        }
+        return q;
+      })
     );
   };
 
@@ -613,7 +635,7 @@ export default function PhishingTrainingPage() {
                 </h3>
                 <p className="text-sm text-slate-500 mt-1">
                   {step === 1
-                    ? "Defina o título e a categoria."
+                    ? "Defina o título, categoria e a descrição."
                     : "Adicione perguntas e marque a alternativa correta. Cada pergunta tem sua dificuldade."}
                 </p>
               </div>
@@ -778,6 +800,7 @@ export default function PhishingTrainingPage() {
                           <div className="space-y-2">
                             {currentQuestion.alternatives.map((alt, altIdx) => {
                               const isCorrect = currentQuestion.correctIndex === altIdx;
+                              const canRemove = currentQuestion.alternatives.length > MIN_ALTERNATIVES;
                               return (
                                 <div
                                   key={altIdx}
@@ -811,6 +834,16 @@ export default function PhishingTrainingPage() {
                                     placeholder={`Alternativa ${ALTERNATIVE_LABELS[altIdx]}`}
                                     className="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                   />
+                                  {canRemove && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeAlternative(currentIdx, altIdx)}
+                                      title="Remover alternativa"
+                                      className="w-10 h-10 flex-shrink-0 rounded-lg bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-700 hover:border-red-200 transition flex items-center justify-center"
+                                    >
+                                      <FiTrash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
                                 </div>
                               );
                             })}
