@@ -81,37 +81,6 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
         />
       </div>
 
-      {/* Feedback de desempenho */}
-      <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
-        <h2 className="text-xl font-bold mb-4 text-slate-900">Seu Desempenho</h2>
-        <div className="space-y-4">
-          {securityScore >= 90 && (
-            <div className="p-4 bg-green-900/20 border border-green-700 rounded-lg">
-              <h3 className="font-semibold text-green-400 mb-2">🎉 Excelente!</h3>
-              <p className="text-slate-700">
-                Você está demonstrando alta conscientização sobre segurança. Continue assim!
-              </p>
-            </div>
-          )}
-          {securityScore >= 70 && securityScore < 90 && (
-            <div className="p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
-              <h3 className="font-semibold text-yellow-400 mb-2">👍 Bom trabalho!</h3>
-              <p className="text-slate-700">
-                Você está indo bem, mas há espaço para melhorias. Continue atento aos treinamentos.
-              </p>
-            </div>
-          )}
-          {securityScore < 70 && (
-            <div className="p-4 bg-red-900/20 border border-red-700 rounded-lg">
-              <h3 className="font-semibold text-red-400 mb-2">⚠️ Atenção Necessária</h3>
-              <p className="text-slate-700">
-                Recomendamos revisar os materiais de treinamento e ter mais cautela com e-mails suspeitos.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Campanhas recebidas */}
       {metrics.recent_campaigns && metrics.recent_campaigns.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">

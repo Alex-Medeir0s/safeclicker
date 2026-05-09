@@ -86,6 +86,10 @@ const difficultyStyle: Record<Difficulty, string> = {
   Difícil: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
+const pageShellClass = "min-h-screen bg-transparent";
+
+const sectionShellClass = "rounded-3xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]";
+
 const normalizeAlternatives = (alternatives: string[]): string[] => {
   const normalized = [...alternatives];
   while (normalized.length < DEFAULT_ALTERNATIVES) {
@@ -497,36 +501,24 @@ export default function PhishingTrainingPage() {
                 medalBgColor = "bg-yellow-50";
                 cardBorder = "border-yellow-400";
                 medal = "🥇";
-                medalSize = "w-20 h-20";
-                cardPadding = "p-8";
-                nameSize = "text-2xl";
-                nameWeight = "font-medium";
-                pointsSize = "text-5xl";
-                pointsWeight = "font-medium";
+                nameSize = "text-xl sm:text-2xl";
+                pointsSize = "text-4xl sm:text-5xl";
               } else if (idx === 1) {
                 // Prata - 2º lugar
                 medalColor = "bg-gradient-to-br from-slate-400 to-slate-500";
-                medalBgColor = "bg-slate-100";
+                medalBgColor = "bg-slate-200";
                 cardBorder = "border-slate-400";
                 medal = "🥈";
-                medalSize = "w-20 h-20";
-                cardPadding = "p-8";
-                nameSize = "text-2xl";
-                nameWeight = "font-medium";
-                pointsSize = "text-5xl";
-                pointsWeight = "font-medium";
+                nameSize = "text-xl sm:text-2xl";
+                pointsSize = "text-4xl sm:text-5xl";
               } else if (idx === 2) {
                 // Bronze - 3º lugar
                 medalColor = "bg-gradient-to-br from-orange-300 to-orange-400";
                 medalBgColor = "bg-orange-50";
                 cardBorder = "border-orange-200";
                 medal = "🥉";
-                medalSize = "w-20 h-20";
-                cardPadding = "p-8";
-                nameSize = "text-2xl";
-                nameWeight = "font-medium";
-                pointsSize = "text-5xl";
-                pointsWeight = "font-medium";
+                nameSize = "text-xl sm:text-2xl";
+                pointsSize = "text-4xl sm:text-5xl";
               }
               
               return (
@@ -535,7 +527,7 @@ export default function PhishingTrainingPage() {
                   className={`${medalBgColor} border-2 ${cardBorder} rounded-2xl shadow-sm hover:shadow-lg transition-all ${cardPadding} flex items-center justify-between group`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`${medalColor} ${medalSize} rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg`}>
+                    <div className={`${medalColor} ${medalSize} shrink-0 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg`}>
                       {idx < 3 ? medal : idx + 1}
                     </div>
                     <div>
@@ -564,7 +556,7 @@ export default function PhishingTrainingPage() {
 
   if (userRole === "COLABORADOR") {
     return (
-      <div className="space-y-8 animate-fade-in">
+      <div className={`${pageShellClass} animate-fade-in`}>
         {feedback && (
           <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white animate-fade-in ${
             feedback.type === "success" ? "bg-emerald-600" : feedback.type === "error" ? "bg-rose-600" : "bg-blue-600"
@@ -573,72 +565,104 @@ export default function PhishingTrainingPage() {
           </div>
         )}
 
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-              Meus Quizzes
-            </h1>
-            <p className="text-slate-600">Histórico de quizzes respondidos e suas pontuações</p>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+          <div className="flex flex-col gap-3 border-b border-slate-200 pb-6">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-indigo-600 font-semibold">Treinamento</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">Meus Quizzes</h1>
+            <p className="text-slate-600 text-sm sm:text-base">Histórico de quizzes respondidos e suas pontuações</p>
           </div>
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-            <p className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total de pontos</p>
-            <div className="mt-3 flex items-end gap-3">
-              <span className="text-4xl font-bold text-amber-600">{totalUserPoints}</span>
-              <span className="text-sm text-slate-500 mb-1">pontos acumulados</span>
-            </div>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-            <p className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Quizzes respondidos</p>
-            <div className="mt-3 flex items-end gap-3">
-              <span className="text-4xl font-bold text-indigo-600">{userResponses.length}</span>
-              <span className="text-sm text-slate-500 mb-1">registros no histórico</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4">
-          {userResponses.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
-              <FiHelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500">Você ainda não respondeu nenhum quiz</p>
-            </div>
-          ) : (
-            userResponses.map((response, idx) => (
-              <div
-                key={idx}
-                className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-6"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-slate-900">{response.quiz_title}</h3>
-                    {response.quiz_category && (
-                      <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mt-1">
-                        {response.quiz_category}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-6 mt-3">
-                      <span className="text-sm text-slate-600">
-                        <strong>{response.correct_count}</strong> de <strong>{response.total_questions}</strong> acertadas
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {new Date(response.submitted_at).toLocaleDateString("pt-BR")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-2">
-                      <FiStar className="w-6 h-6 text-amber-500" />
-                      <span className="text-3xl font-bold text-amber-600">{response.points_earned}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">Pontos</p>
-                  </div>
-                </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Total de pontos</p>
+              <div className="mt-2 flex items-baseline gap-3">
+                <span className="text-3xl font-bold text-amber-600">{totalUserPoints}</span>
+                <span className="text-sm text-slate-500">acumulados</span>
               </div>
-            ))
-          )}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Quizzes respondidos</p>
+              <div className="mt-2 flex items-baseline gap-3">
+                <span className="text-3xl font-bold text-indigo-600">{userResponses.length}</span>
+                <span className="text-sm text-slate-500">registros</span>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 sm:col-span-2 lg:col-span-1">
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Média de acertos</p>
+              <div className="mt-2 flex items-baseline gap-3">
+                <span className="text-3xl font-bold text-slate-900">
+                  {userResponses.length > 0
+                    ? `${Math.round(
+                        userResponses.reduce(
+                          (sum, response) => sum + (response.correct_count / Math.max(response.total_questions, 1)) * 100,
+                          0
+                        ) / userResponses.length
+                      )}%`
+                    : "0%"}
+                </span>
+                <span className="text-sm text-slate-500">desempenho</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {userResponses.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+                <FiHelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Você ainda não respondeu nenhum quiz</p>
+              </div>
+            ) : (
+              userResponses.map((response, idx) => {
+                const scorePercentage = Math.round((response.correct_count / Math.max(response.total_questions, 1)) * 100);
+
+                return (
+                  <div key={idx} className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    <div className="h-1 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500" />
+                    <div className="p-5 sm:p-6">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 flex-1 space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-700">
+                              Quiz respondido
+                            </span>
+                            {response.quiz_category && (
+                              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                                {response.quiz_category}
+                              </span>
+                            )}
+                          </div>
+
+                          <h3 className="text-lg sm:text-xl font-semibold text-slate-900 leading-snug">{response.quiz_title}</h3>
+
+                          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-700">
+                              <strong className="text-slate-900 mr-1">{response.correct_count}</strong>
+                              de <strong className="text-slate-900 mx-1">{response.total_questions}</strong>
+                              acertos
+                            </span>
+                            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">
+                              {scorePercentage}% de acerto
+                            </span>
+                            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-500">
+                              {new Date(response.submitted_at).toLocaleDateString("pt-BR")}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 lg:text-right lg:pl-4 lg:border-l lg:border-slate-200">
+                          <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-2">Pontos</p>
+                          <div className="inline-flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                            <FiStar className="w-5 h-5 text-amber-500" />
+                            <span className="text-3xl font-bold text-amber-600">{response.points_earned}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     );

@@ -357,22 +357,22 @@ export default function Reports() {
       );
 
       if (activeCampaigns.length > 0) {
-        currentY += 20;
+        currentY += 8;
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(1);
-        doc.line(40, currentY + 10, pageWidth - 40, currentY + 10);
+        doc.line(40, currentY + 4, pageWidth - 40, currentY + 4);
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
-        doc.text("Detalhamento", 40, currentY + 28);
+        doc.text("Detalhamento", 40, currentY + 14);
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(14);
-        doc.text("Campanhas Ativas e Cliques", 40, currentY + 46);
-        currentY = currentY + 76;
+        doc.text("Campanhas Ativas e Cliques", 40, currentY + 28);
+        currentY = currentY + 46;
 
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(1);
         doc.line(40, currentY, pageWidth - 40, currentY);
-        currentY += 16;
+        currentY += 8;
 
         for (const campaign of activeCampaigns) {
           if (currentY > 720) {
@@ -388,7 +388,7 @@ export default function Reports() {
           const clicks = clicksResponse.data?.clicks || [];
 
           autoTable(doc, {
-            startY: currentY + 4,
+            startY: currentY + 10,
             head: [["Nome", "Email", "IP", "Data do Clique", "Treinamento", "Data do Treinamento"]],
             body:
               clicks.length > 0
@@ -403,13 +403,13 @@ export default function Reports() {
                       : "-",
                   ])
                 : [["Nenhum clique registrado", "-", "-", "-", "-", "-"]],
-            styles: { ...tableStyles, fontSize: 8 },
+            styles: { ...tableStyles, fontSize: 8, cellPadding: 3 },
             headStyles: tableHeadStyles,
             alternateRowStyles: tableAltRowStyles,
           });
 
           currentY = (doc as any).lastAutoTable?.finalY || currentY + 56;
-          currentY += 8;
+          currentY += 12;
         }
       }
 
