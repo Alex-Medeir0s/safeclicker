@@ -504,7 +504,8 @@ def _calculate_points_per_question(
     - Médio: 20 pontos
     - Difícil: 30 pontos
     
-    Penalidade: -1 ponto por segundo (mínimo de 5 pontos)
+    Pontuação máxima nos primeiros 20 segundos.
+    Após 20 segundos: -1 ponto a cada 3 segundos (mínimo de 5 pontos)
     Só ganha pontos se acertar a pergunta.
     """
     if not is_correct:
@@ -517,8 +518,14 @@ def _calculate_points_per_question(
         "Difícil": 30,
     }.get(difficulty, 10)
     
-    # Aplicar penalidade de 1 ponto por segundo (após 2 segundos de graça)
-    points = base_points - max(0, response_time_seconds - 2)
+    # Se respondeu dentro de 20 segundos, ganha pontos máximos
+    if response_time_seconds <= 20:
+        return base_points
+    
+    # Após 20 segundos: -1 ponto a cada 3 segundos
+    seconds_over_20 = response_time_seconds - 20
+    penalty = seconds_over_20 // 3  # Divisão inteira para cada 3 segundos
+    points = base_points - penalty
     
     # Mínimo de 5 pontos
     return max(points, 5)
