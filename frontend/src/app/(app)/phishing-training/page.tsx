@@ -1090,13 +1090,14 @@ export default function PhishingTrainingPage() {
             className="bg-white rounded-2xl shadow-2xl w-full max-w-[960px] overflow-hidden flex flex-col max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between p-6 pb-4 border-b border-slate-100">
-              <div>
-                <p className="text-[11px] uppercase tracking-wider text-sky-600 font-semibold">Visualização</p>
-                <h3 className="text-xl font-bold text-slate-900 mt-0.5">{previewQuiz.title}</h3>
-                <p className="text-sm text-slate-500 mt-1">{previewQuiz.category || "Geral"}</p>
+            {/* Header com fundo sutil degradado */}
+            <div className="flex items-start justify-between p-8 pb-6 border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white">
+              <div className="min-w-0 pr-4">
+                <p className="text-[11px] uppercase tracking-wider text-indigo-600 font-semibold">Visualização do Quiz</p>
+                <h3 className="text-3xl font-black text-slate-900 mt-1 break-words leading-tight">{previewQuiz.title}</h3>
+                <p className="text-sm text-slate-500 font-medium mt-2">{previewQuiz.category || "Geral"}</p>
                 {previewQuiz.description && (
-                  <p className="text-sm text-slate-600 mt-2">{previewQuiz.description}</p>
+                  <p className="text-sm text-slate-600 mt-3 leading-6 break-words">{previewQuiz.description}</p>
                 )}
               </div>
               <button
@@ -1104,64 +1105,73 @@ export default function PhishingTrainingPage() {
                   setShowPreview(false);
                   setPreviewQuiz(null);
                 }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition shrink-0"
               >
                 <FiX className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-8 space-y-5">
               {previewQuiz.questions.length === 0 ? (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-slate-500">
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-8 text-center text-slate-500 font-medium">
                   Este quiz ainda não possui perguntas.
                 </div>
               ) : (
                 previewQuiz.questions
                   .sort((a, b) => a.position - b.position)
                   .map((question, questionIdx) => (
-                    <div key={question.id} className="border border-slate-200 rounded-xl p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
-                          Pergunta {questionIdx + 1}
-                        </span>
-                        {question.difficulty && (
-                          <span className={`text-xs font-semibold border px-2 py-0.5 rounded-full ${difficultyStyle[question.difficulty]}`}>
-                            {question.difficulty}
+                    <div key={question.id} className="group border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                      {/* Barra gradiente no topo */}
+                      <div className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
+                      
+                      <div className="p-5 space-y-4">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-xs font-bold text-indigo-700 bg-indigo-100 border border-indigo-300 px-3 py-1 rounded-full">
+                            Pergunta {questionIdx + 1}
                           </span>
-                        )}
-                      </div>
-                      <p className="font-semibold text-slate-900">{question.text}</p>
-                      <div className="space-y-2">
-                        {question.alternatives.map((alternative, altIdx) => {
-                          const isCorrect = altIdx === question.correct_index;
-                          return (
-                            <div
-                              key={altIdx}
-                              className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
-                                isCorrect
-                                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                                  : "border-slate-200 bg-white text-slate-700"
-                              }`}
-                            >
-                              <span className="text-xs font-bold w-6 text-center">{ALTERNATIVE_LABELS[altIdx] || `${altIdx + 1}`}</span>
-                              <span className="text-sm flex-1">{alternative}</span>
-                              {isCorrect && <FiCheckCircle className="w-4 h-4 text-emerald-600" />}
-                            </div>
-                          );
-                        })}
+                          {question.difficulty && (
+                            <span className={`text-xs font-semibold border px-3 py-1 rounded-full ${difficultyStyle[question.difficulty]}`}>
+                              {question.difficulty}
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-bold text-slate-900 text-base leading-7 break-words">{question.text}</p>
+                        <div className="space-y-3 pt-1">
+                          {question.alternatives.map((alternative, altIdx) => {
+                            const isCorrect = altIdx === question.correct_index;
+                            return (
+                              <div
+                                key={altIdx}
+                                className={`flex items-start gap-3 rounded-lg border-2 px-4 py-3 transition-all ${
+                                  isCorrect
+                                    ? "border-emerald-300 bg-emerald-50/80 text-emerald-900 shadow-sm"
+                                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                                }`}
+                              >
+                                <span className={`text-sm font-black w-6 text-center shrink-0 mt-0.5 ${
+                                  isCorrect ? "text-emerald-700" : "text-slate-500"
+                                }`}>
+                                  {ALTERNATIVE_LABELS[altIdx] || `${altIdx + 1}`}
+                                </span>
+                                <span className="text-sm flex-1 min-w-0 leading-6 break-words font-medium">{alternative}</span>
+                                {isCorrect && <FiCheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5 flex-shrink-0" />}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   ))
               )}
             </div>
 
-            <div className="flex justify-end p-4 border-t border-slate-100 bg-slate-50/50">
+            <div className="flex justify-end gap-3 p-6 border-t border-slate-100 bg-gradient-to-r from-slate-50 to-white">
               <button
                 onClick={() => {
                   setShowPreview(false);
                   setPreviewQuiz(null);
                 }}
-                className="px-5 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 transition font-semibold"
+                className="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 transition font-semibold text-sm"
               >
                 Fechar
               </button>
