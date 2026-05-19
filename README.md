@@ -61,33 +61,28 @@ CREATE DATABASE safeclicker;
 
 ### 2️⃣ Configurar e Executar o Backend
 
-#### Passo 1: Navegar até a pasta do backend
+#### Passo 1: Criar e ativar o ambiente virtual Python
+
+**Windows (na raiz do projeto):**
+```bash
+python -m venv .venv
+.\.venv\Scripts\activate
+```
+
+**Linux/Mac (na raiz do projeto):**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+#### Passo 2: Navegar até a pasta do backend e instalar dependências
 
 ```bash
 cd backend
-```
-
-#### Passo 2: Criar e ativar o ambiente virtual Python
-
-**Windows:**
-```bash
-python -m venv venv
-.\venv\Scripts\activate
-```
-
-**Linux/Mac:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-#### Passo 3: Instalar dependências
-
-```bash
 pip install -r requirements.txt
 ```
 
-#### Passo 4: Configurar variáveis de ambiente (opcional)
+#### Passo 3: Configurar variáveis de ambiente (opcional)
 
 Crie um arquivo `.env` na pasta `backend` com as configurações:
 
@@ -104,24 +99,29 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 APP_BASE_URL=http://SEU_IP_LOCAL:8000
 FRONTEND_URL=http://SEU_IP_LOCAL:3000
 
-# SendGrid (opcional - para envio de emails)
-SENDGRID_API_KEY=SG_SUA_API_KEY_AQUI
-SENDGRID_FROM_EMAIL=campanhas@safeclicker.local
+# SMTP (opcional - para envio de emails)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=seu-email@example.com
+SMTP_PASSWORD=sua-app-password
+SMTP_FROM=SafeClicker <seu-email@example.com>
 ```
 
 > **Nota:** As configurações padrão já estão definidas em `backend/app/core/config.py`. O arquivo `.env` é opcional se você usar os valores padrão.
 
-#### Passo 5: Inicializar o banco de dados
+#### Passo 4: Inicializar o banco de dados
 
 ```bash
 # Criar as tabelas no banco de dados
 python sync_database.py
 
-# (Opcional) Adicionar dados de exemplo
+# (Opcional) Tentar adicionar dados de exemplo
 python init_data.py
 ```
 
-#### Passo 6: Executar o servidor backend
+> **Nota:** O script `init_data.py` depende de permissões da API e pode exigir um usuário com perfil adequado já criado.
+
+#### Passo 5: Executar o servidor backend
 
 **Opção 1: Usando o script de inicialização (Recomendado)**
 
@@ -245,14 +245,16 @@ cd backend
 # Sincronizar estrutura do banco de dados
 python sync_database.py
 
-# Criar dados de teste
+# Tentar criar dados de exemplo
 python init_data.py
 
-# Criar usuário de teste
-python create_test_user.py
+# Migração de papéis/perfis (RBAC)
+python migrate_rbac.py
 
-# Executar testes da API
-python test_api.py
+# Ajustes/migrações auxiliares (quando necessário)
+python add_role_column.py
+python add_department_id_to_campaigns.py
+python add_user_id_to_campaign_sends.py
 
 # Rodar servidor com reload automático (manual)
 python -m uvicorn app.main:app --reload
@@ -284,31 +286,27 @@ Após iniciar o backend, você pode testar a API de várias formas:
 ### 1. Swagger UI (Recomendado)
 Acesse http://localhost:8000/docs para uma interface interativa completa.
 
-### 2. Arquivo de teste
-```bash
-cd backend
-python test_api.py
-```
-
-### 3. cURL
+### 2. cURL
 ```bash
 # Health Check
 curl http://localhost:8000/health
 
+# Login
+curl -X POST http://localhost:8000/auth/login -H "Content-Type: application/json" -d "{\"email\":\"seu-email\",\"password\":\"sua-senha\"}"
+
+# Para endpoints protegidos, use um token JWT válido
+set TOKEN=SEU_TOKEN_JWT
+
 # Listar usuários
-curl http://localhost:8000/users
+curl -H "Authorization: Bearer %TOKEN%" http://localhost:8000/users
 
 # Listar campanhas
-curl http://localhost:8000/campaigns
+curl -H "Authorization: Bearer %TOKEN%" http://localhost:8000/campaigns
 ```
 
-## 👤 Usuário de Teste
+## 👤 Primeiro acesso
 
-Após executar `python init_data.py`, você terá acesso a:
-
-- **Email:** admin@empresa.com
-- **Senha:** admin123
-- **Role:** admin
+Use o endpoint `POST /auth/register` para criar um usuário inicial em ambiente de desenvolvimento e depois faça login em `POST /auth/login`.
 
 ## 🗃️ Modelos de Dados
 
@@ -333,13 +331,19 @@ Authorization: Bearer <seu-token-jwt>
 ## 📊 Endpoints Principais da API
 
 - `GET /health` - Status do sistema
+- `POST /auth/login` - Login e retorno de token JWT
+- `POST /auth/register` - Registro de usuário
+- `GET /auth/me` - Dados do usuário autenticado
 - `GET /users` - Listar usuários
 - `POST /users` - Criar usuário
 - `GET /campaigns` - Listar campanhas
 - `POST /campaigns` - Criar campanha
+- `POST /campaigns/{id}/send` - Enviar campanha
 - `GET /templates` - Listar templates
 - `GET /departments` - Listar departamentos
-- `GET /metrics` - Métricas do sistema
+- `GET /metrics/dashboard` - Métricas do dashboard
+- `GET /quizzes` - Listar quizzes
+- `POST /quizzes` - Criar quiz
 
 Documentação completa em: http://localhost:8000/docs
 
@@ -403,21 +407,19 @@ Certifique-se de que o ambiente virtual está ativado:
 
 ```bash
 # Windows
-.\venv\Scripts\activate
+.\.venv\Scripts\activate
 
 # Linux/Mac
-source venv/bin/activate
+source .venv/bin/activate
 
 # Reinstalar dependências
+cd backend
 pip install -r requirements.txt
 ```
 
-## 📚 Documentação Adicional
+## 📚 Documentação
 
-- [QUICK_START.md](QUICK_START.md) - Guia de início rápido
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Arquitetura do sistema
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Guia de deploy
-- [STATUS.md](STATUS.md) - Status atual do projeto
+A documentação foi consolidada neste README para simplificar a manutenção.
 
 ## 🤝 Contribuindo
 
