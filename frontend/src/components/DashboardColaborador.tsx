@@ -31,6 +31,7 @@ interface DashboardColaboradorProps {
 export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
   // Calcular pontuação de segurança (100 - taxa de cliques)
   const securityScore = Math.max(0, 100 - metrics.summary.click_rate);
+  const clickedRecentCampaigns = (metrics.recent_campaigns ?? []).filter((campaign) => campaign.clicks > 0);
 
   const getClickRateColor = (rate: number) => {
     const normalizedRate = Math.max(0, Math.min(100, rate));
@@ -82,11 +83,11 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
       </div>
 
       {/* Campanhas recebidas */}
-      {metrics.recent_campaigns && metrics.recent_campaigns.length > 0 && (
+      {clickedRecentCampaigns.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-6 border border-slate-200">
           <h2 className="text-xl font-bold mb-4 text-slate-900">Treinamentos Recentes</h2>
           <div className="space-y-3">
-            {metrics.recent_campaigns.map((campaign) => (
+            {clickedRecentCampaigns.map((campaign) => (
               <div
                 key={campaign.id}
                 className="flex items-center justify-between p-4 bg-slate-50 rounded-lg"
@@ -98,11 +99,7 @@ export function DashboardColaborador({ metrics }: DashboardColaboradorProps) {
                   </p>
                 </div>
                 <div className="flex gap-4 text-sm">
-                  {campaign.clicks > 0 ? (
-                    <span className="text-red-400 font-semibold">Clicou no link</span>
-                  ) : (
-                    <span className="text-green-400 font-semibold">Não clicou</span>
-                  )}
+                  <span className="text-red-400 font-semibold">Clicou no link</span>
                 </div>
               </div>
             ))}

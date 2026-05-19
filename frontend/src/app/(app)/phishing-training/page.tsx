@@ -131,6 +131,7 @@ export default function PhishingTrainingPage() {
   const [rankingScope, setRankingScope] = useState<RankingScope>("global");
   const [globalRanking, setGlobalRanking] = useState<DepartmentUser[]>([]);
   const [departmentRanking, setDepartmentRanking] = useState<DepartmentUser[]>([]);
+  const [managerDepartmentName, setManagerDepartmentName] = useState<string | null>(null);
 
   // Para Colaborador
   const [userResponses, setUserResponses] = useState<UserQuizResponse[]>([]);
@@ -151,6 +152,11 @@ export default function PhishingTrainingPage() {
       if (role === "TI") {
         fetchQuizzes();
       } else if (role === "GESTOR") {
+        const storedDepartmentName =
+          user.department_name ?? user.department?.name ?? user.department ?? null;
+        if (typeof storedDepartmentName === "string" && storedDepartmentName.trim().length > 0) {
+          setManagerDepartmentName(storedDepartmentName.trim());
+        }
         fetchGlobalRanking();
       } else if (role === "COLABORADOR") {
         fetchUserResponses();
@@ -175,6 +181,11 @@ export default function PhishingTrainingPage() {
       const response = await api.get<DepartmentUser[]>("/campaigns/quiz/department-ranking");
       console.log("Department ranking response:", response.data);
       setDepartmentRanking(response.data);
+
+      const apiDepartmentName = response.data.find((entry) => entry.department_name)?.department_name?.trim();
+      if (apiDepartmentName) {
+        setManagerDepartmentName(apiDepartmentName);
+      }
     } catch (error: any) {
       console.error("Erro ao carregar ranking:", error);
       const errorMsg = error.response?.data?.detail || error.message || "Erro ao carregar ranking do departamento";
@@ -280,7 +291,14 @@ export default function PhishingTrainingPage() {
       showFeedback("error", "O quiz precisa ter ao menos 3 perguntas");
       return;
     }
+
+    const nextMaxIdx = questions.length - 2;
     setQuestions((prev) => prev.filter((_, i) => i !== idx));
+    setCurrentIdx((prevIdx) => {
+      if (prevIdx > idx) return prevIdx - 1;
+      if (prevIdx === idx) return Math.max(0, prevIdx - 1);
+      return Math.min(prevIdx, nextMaxIdx);
+    });
   };
 
   const handleNextStep = () => {
@@ -395,6 +413,13 @@ export default function PhishingTrainingPage() {
   const completedCount = questions.filter(isQuestionComplete).length;
   const currentQuestion = questions[currentIdx];
   const rankingData = rankingScope === "global" ? globalRanking : departmentRanking;
+  const resolvedDepartmentName =
+    managerDepartmentName ??
+    departmentRanking.find((entry) => entry.department_name)?.department_name?.trim() ??
+    null;
+  const departmentRankingSubtitle = resolvedDepartmentName
+    ? `Pontuação total dos colaboradores do departamento "${resolvedDepartmentName}"`
+    : "Pontuação total dos colaboradores do meu departamento";
   const totalPossiblePoints = questions.reduce(
     (acc, question) => acc + xpForDifficulty[question.difficulty],
     0
@@ -422,7 +447,7 @@ export default function PhishingTrainingPage() {
     return (
       <div className="space-y-8 animate-fade-in">
         {feedback && (
-          <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white animate-fade-in ${
+          <div className={`fixed top-4 right-4 z-[70] px-6 py-3 rounded-xl shadow-lg text-white animate-fade-in ${
             feedback.type === "success" ? "bg-emerald-600" : feedback.type === "error" ? "bg-rose-600" : "bg-blue-600"
           }`}>
             {feedback.message}
@@ -435,9 +460,7 @@ export default function PhishingTrainingPage() {
               Ranking de Colaboradores
             </h1>
             <p className="text-slate-600">
-              {rankingScope === "global"
-                ? "Pontuação geral"
-                : "Pontuação total dos colaboradores do meu departamento"}
+              {rankingScope === "global" ? "Pontuação geral" : departmentRankingSubtitle}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -502,7 +525,6 @@ export default function PhishingTrainingPage() {
                 cardBorder = "border-yellow-400";
                 medal = "🥇";
                 nameSize = "text-xl sm:text-2xl";
-                pointsSize = "text-4xl sm:text-5xl";
               } else if (idx === 1) {
                 // Prata - 2º lugar
                 medalColor = "bg-gradient-to-br from-slate-400 to-slate-500";
@@ -510,7 +532,6 @@ export default function PhishingTrainingPage() {
                 cardBorder = "border-slate-400";
                 medal = "🥈";
                 nameSize = "text-xl sm:text-2xl";
-                pointsSize = "text-4xl sm:text-5xl";
               } else if (idx === 2) {
                 // Bronze - 3º lugar
                 medalColor = "bg-gradient-to-br from-orange-300 to-orange-400";
@@ -518,7 +539,6 @@ export default function PhishingTrainingPage() {
                 cardBorder = "border-orange-200";
                 medal = "🥉";
                 nameSize = "text-xl sm:text-2xl";
-                pointsSize = "text-4xl sm:text-5xl";
               }
               
               return (
@@ -558,7 +578,7 @@ export default function PhishingTrainingPage() {
     return (
       <div className={`${pageShellClass} animate-fade-in`}>
         {feedback && (
-          <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white animate-fade-in ${
+          <div className={`fixed top-4 right-4 z-[70] px-6 py-3 rounded-xl shadow-lg text-white animate-fade-in ${
             feedback.type === "success" ? "bg-emerald-600" : feedback.type === "error" ? "bg-rose-600" : "bg-blue-600"
           }`}>
             {feedback.message}
@@ -584,7 +604,7 @@ export default function PhishingTrainingPage() {
               <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Quizzes respondidos</p>
               <div className="mt-2 flex items-baseline gap-3">
                 <span className="text-3xl font-bold text-indigo-600">{userResponses.length}</span>
-                <span className="text-sm text-slate-500">registros</span>
+                <span className="text-sm text-slate-500">registro(s)</span>
               </div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 sm:col-span-2 lg:col-span-1">
@@ -672,7 +692,7 @@ export default function PhishingTrainingPage() {
   return (
     <>
       {feedback && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white animate-fade-in ${
+        <div className={`fixed top-4 right-4 z-[70] px-6 py-3 rounded-xl shadow-lg text-white animate-fade-in ${
           feedback.type === "success" ? "bg-emerald-600" : feedback.type === "error" ? "bg-rose-600" : "bg-blue-600"
         }`}>
           {feedback.message}
